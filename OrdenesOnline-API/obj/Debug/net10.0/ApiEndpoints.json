@@ -1,0 +1,116 @@
+[
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.PropuestaController",
+    "Method": "Get",
+    "RelativePath": "api/Propuesta",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.PropuestaController",
+    "Method": "Post",
+    "RelativePath": "api/Propuesta",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "NombreOperador",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Dni",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "CorreoCorporativo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Cosabcli",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Tipo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Cantidad",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "Instrumento",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Precio",
+        "Type": "System.Decimal",
+        "IsRequired": false
+      },
+      {
+        "Name": "Moneda",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.PropuestaController",
+    "Method": "Put",
+    "RelativePath": "api/Propuesta",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "propuesta",
+        "Type": "OrdenesOnline.Domain.entities.Propuesta",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.PropuestaController",
+    "Method": "Get",
+    "RelativePath": "api/Propuesta/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.PropuestaController",
+    "Method": "Delete",
+    "RelativePath": "api/Propuesta/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]

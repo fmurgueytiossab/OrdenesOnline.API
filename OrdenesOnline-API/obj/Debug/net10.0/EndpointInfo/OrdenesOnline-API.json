@@ -1,0 +1,228 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "OrdenesOnline-API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/Propuesta": {
+      "get": {
+        "tags": [
+          "Propuesta"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Propuesta"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "NombreOperador": {
+                    "type": "string"
+                  },
+                  "Dni": {
+                    "type": "string"
+                  },
+                  "CorreoCorporativo": {
+                    "type": "string"
+                  },
+                  "Cosabcli": {
+                    "type": "string"
+                  },
+                  "Tipo": {
+                    "type": "string"
+                  },
+                  "Cantidad": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "Instrumento": {
+                    "type": "string"
+                  },
+                  "Precio": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "Moneda": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "NombreOperador": {
+                  "style": "form"
+                },
+                "Dni": {
+                  "style": "form"
+                },
+                "CorreoCorporativo": {
+                  "style": "form"
+                },
+                "Cosabcli": {
+                  "style": "form"
+                },
+                "Tipo": {
+                  "style": "form"
+                },
+                "Cantidad": {
+                  "style": "form"
+                },
+                "Instrumento": {
+                  "style": "form"
+                },
+                "Precio": {
+                  "style": "form"
+                },
+                "Moneda": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Propuesta"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Propuesta"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Propuesta"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Propuesta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Propuesta/{id}": {
+      "get": {
+        "tags": [
+          "Propuesta"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Propuesta"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Propuesta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nombreOperador": {
+            "type": "string",
+            "nullable": true
+          },
+          "dni": {
+            "type": "string",
+            "nullable": true
+          },
+          "correoCorporativo": {
+            "type": "string",
+            "nullable": true
+          },
+          "cosabcli": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instrumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "precio": {
+            "type": "number",
+            "format": "double"
+          },
+          "moneda": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Propuesta"
+    }
+  ]
+}

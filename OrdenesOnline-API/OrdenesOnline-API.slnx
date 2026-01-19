@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../OrdenesOnline.Application/OrdenesOnline.Application.csproj" Id="d59154fb-3ca5-4715-8c01-45b6fc957d85" />
+  <Project Path="../OrdenesOnline.Domain/OrdenesOnline.Domain.csproj" Id="92a7f414-3cf7-43e2-97c3-57845681f608" />
+  <Project Path="../OrdenesOnline.Infrastructure/OrdenesOnline.Infrastructure.csproj" Id="725bfc51-a400-4094-b2d1-d80a9b101df0" />
+  <Project Path="OrdenesOnline-API.csproj" />
+</Solution>

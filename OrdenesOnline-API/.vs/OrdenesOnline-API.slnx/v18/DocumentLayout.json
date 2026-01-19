@@ -1,0 +1,86 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline-api\\models\\propuestacreaterequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|solutionrelative:models\\propuestacreaterequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{92A7F414-3CF7-43E2-97C3-57845681F608}|..\\OrdenesOnline.Domain\\OrdenesOnline.Domain.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.domain\\entities\\propuesta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D59154FB-3CA5-4715-8C01-45B6FC957D85}|..\\OrdenesOnline.Application\\OrdenesOnline.Application.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.application\\services\\zapierservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline-api\\controllers\\propuestacontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|solutionrelative:controllers\\propuestacontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "PropuestaCreateRequest.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Models\\PropuestaCreateRequest.cs",
+              "RelativeDocumentMoniker": "Models\\PropuestaCreateRequest.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Models\\PropuestaCreateRequest.cs",
+              "RelativeToolTip": "Models\\PropuestaCreateRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T14:54:55.59Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Propuesta.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\entities\\Propuesta.cs",
+              "RelativeDocumentMoniker": "..\\OrdenesOnline.Domain\\entities\\Propuesta.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\entities\\Propuesta.cs",
+              "RelativeToolTip": "..\\OrdenesOnline.Domain\\entities\\Propuesta.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAQwBAAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T14:54:05.199Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ZapierService.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\ZapierService.cs",
+              "RelativeDocumentMoniker": "..\\OrdenesOnline.Application\\Services\\ZapierService.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\ZapierService.cs",
+              "RelativeToolTip": "..\\OrdenesOnline.Application\\Services\\ZapierService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAUwAgAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T14:52:28.918Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PropuestaController.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\PropuestaController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropuestaController.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\PropuestaController.cs",
+              "RelativeToolTip": "Controllers\\PropuestaController.cs",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAIwDYAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-19T14:52:15.45Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
