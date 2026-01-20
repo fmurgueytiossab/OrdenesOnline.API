@@ -18,49 +18,9 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "NombreOperador",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "Dni",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "CorreoCorporativo",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "Cosabcli",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "Tipo",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "Cantidad",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "Instrumento",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "Precio",
-        "Type": "System.Decimal",
-        "IsRequired": false
-      },
-      {
-        "Name": "Moneda",
-        "Type": "System.String",
-        "IsRequired": false
+        "Name": "req",
+        "Type": "OrdenesOnline_API.Models.PropuestaCreateRequest",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
@@ -108,6 +68,96 @@
       {
         "Name": "id",
         "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Get",
+    "RelativePath": "api/Representante",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Post",
+    "RelativePath": "api/Representante",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "OrdenesOnline_API.Models.RepresentanteCreateRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Put",
+    "RelativePath": "api/Representante",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "representante",
+        "Type": "OrdenesOnline.Domain.entities.Representante",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Get",
+    "RelativePath": "api/Representante/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Delete",
+    "RelativePath": "api/Representante/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "ValidatePassword",
+    "RelativePath": "api/Representante/validate-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "OrdenesOnline.Domain.DTO.ValidatePasswordRequest",
         "IsRequired": true
       }
     ],

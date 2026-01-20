@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 
 namespace OrdenesOnline.Infrastructure.Persistence
@@ -10,11 +11,19 @@ namespace OrdenesOnline.Infrastructure.Persistence
         }
 
         public DbSet<Propuesta> Propuestas { get; set; }
+        public DbSet<Representante> Representantes { get; set; }
+        public DbSet<PasswordValidationResult> PasswordValidationResults { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Propuesta>()
                 .ToTable("propuestas");
+
+            modelBuilder.Entity<Representante>()
+                .ToTable("UserRepresentante");
+
+            modelBuilder.Entity<PasswordValidationResult>().HasNoKey();
         }
     }
 }

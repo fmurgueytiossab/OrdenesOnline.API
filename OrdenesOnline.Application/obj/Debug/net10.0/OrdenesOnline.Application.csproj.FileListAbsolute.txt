@@ -28,3 +28,4 @@ C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Application\obj\Debu
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Application\obj\Debug\net10.0\refint\OrdenesOnline.Application.dll
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Application\obj\Debug\net10.0\OrdenesOnline.Application.pdb
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Application\obj\Debug\net10.0\ref\OrdenesOnline.Application.dll
+C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Application\obj\Debug\net10.0\OrdenesOnline.Application.sourcelink.json

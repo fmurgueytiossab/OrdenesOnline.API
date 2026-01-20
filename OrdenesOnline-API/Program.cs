@@ -30,6 +30,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IPropuestaRepository, PropuestaRepository>();
 builder.Services.AddScoped<PropuestaService>();
 
+builder.Services.AddScoped<IRepresentanteRepository, RepresentanteRepository>();
+builder.Services.AddScoped<RepresentanteService>();
+
 builder.Services.AddHttpClient<ZapierService>();
 
 builder.Services.AddControllers();
@@ -40,16 +43,11 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseHttpsRedirection();
+
 app.UseCors("AllowFrontend");
 
 app.MapControllers();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
 
 app.Run();

@@ -22,69 +22,19 @@
         ],
         "requestBody": {
           "content": {
-            "multipart/form-data": {
+            "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "NombreOperador": {
-                    "type": "string"
-                  },
-                  "Dni": {
-                    "type": "string"
-                  },
-                  "CorreoCorporativo": {
-                    "type": "string"
-                  },
-                  "Cosabcli": {
-                    "type": "string"
-                  },
-                  "Tipo": {
-                    "type": "string"
-                  },
-                  "Cantidad": {
-                    "type": "integer",
-                    "format": "int32"
-                  },
-                  "Instrumento": {
-                    "type": "string"
-                  },
-                  "Precio": {
-                    "type": "number",
-                    "format": "double"
-                  },
-                  "Moneda": {
-                    "type": "string"
-                  }
-                }
-              },
-              "encoding": {
-                "NombreOperador": {
-                  "style": "form"
-                },
-                "Dni": {
-                  "style": "form"
-                },
-                "CorreoCorporativo": {
-                  "style": "form"
-                },
-                "Cosabcli": {
-                  "style": "form"
-                },
-                "Tipo": {
-                  "style": "form"
-                },
-                "Cantidad": {
-                  "style": "form"
-                },
-                "Instrumento": {
-                  "style": "form"
-                },
-                "Precio": {
-                  "style": "form"
-                },
-                "Moneda": {
-                  "style": "form"
-                }
+                "$ref": "#/components/schemas/PropuestaCreateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropuestaCreateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropuestaCreateRequest"
               }
             }
           }
@@ -168,6 +118,151 @@
           }
         }
       }
+    },
+    "/api/Representante": {
+      "get": {
+        "tags": [
+          "Representante"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Representante"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepresentanteCreateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepresentanteCreateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepresentanteCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Representante"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Representante"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Representante"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Representante"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Representante/{id}": {
+      "get": {
+        "tags": [
+          "Representante"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Representante"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Representante/validate-password": {
+      "post": {
+        "tags": [
+          "Representante"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -180,10 +275,6 @@
             "format": "int32"
           },
           "nombreOperador": {
-            "type": "string",
-            "nullable": true
-          },
-          "dni": {
             "type": "string",
             "nullable": true
           },
@@ -217,12 +308,117 @@
           }
         },
         "additionalProperties": false
+      },
+      "PropuestaCreateRequest": {
+        "type": "object",
+        "properties": {
+          "nombreOperador": {
+            "type": "string",
+            "nullable": true
+          },
+          "correoCorporativo": {
+            "type": "string",
+            "nullable": true
+          },
+          "cosabcli": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instrumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "precio": {
+            "type": "number",
+            "format": "double"
+          },
+          "moneda": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Representante": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "correoCorporativo": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "cosabcli": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RepresentanteCreateRequest": {
+        "type": "object",
+        "properties": {
+          "correoCorporativo": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "cosabcli": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidatePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "correo": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       }
     }
   },
   "tags": [
     {
       "name": "Propuesta"
+    },
+    {
+      "name": "Representante"
     }
   ]
 }

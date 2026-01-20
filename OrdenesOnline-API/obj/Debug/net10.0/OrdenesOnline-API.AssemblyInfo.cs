@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrdenesOnline-API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+56e0b4acf3e96215a6a55dec4d4326e2b89657d4")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrdenesOnline-API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrdenesOnline-API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

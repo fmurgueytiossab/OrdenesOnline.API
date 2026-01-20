@@ -10,8 +10,7 @@ namespace OrdenesOnline.Domain.entities
         public int Id { get; set; }
 
         [Column("Nombre_Operador")]
-        public string NombreOperador { get; set; } = null!;
-        public string Dni { get; set; } = null!;
+        public string NombreOperador { get; set; } = null!;       
         [Column("Correo_Corporativo")]
         public string CorreoCorporativo { get; set; } = null!;
         public string Cosabcli { get; set; } = null!;

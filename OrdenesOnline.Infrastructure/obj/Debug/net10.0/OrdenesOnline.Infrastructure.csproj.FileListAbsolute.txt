@@ -28,3 +28,4 @@ C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Infrastructure\obj\D
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Infrastructure\obj\Debug\net10.0\refint\OrdenesOnline.Infrastructure.dll
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Infrastructure\obj\Debug\net10.0\OrdenesOnline.Infrastructure.pdb
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Infrastructure\obj\Debug\net10.0\ref\OrdenesOnline.Infrastructure.dll
+C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline.Infrastructure\obj\Debug\net10.0\OrdenesOnline.Infrastructure.sourcelink.json

@@ -33,12 +33,16 @@ namespace OrdenesOnline_API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromForm] PropuestaCreateRequest req)
+        public async Task<IActionResult> Post(PropuestaCreateRequest req)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var propuesta = new Propuesta
             {
-                NombreOperador = req.NombreOperador,
-                Dni = req.Dni,
+                NombreOperador = req.NombreOperador,                
                 CorreoCorporativo = req.CorreoCorporativo,
                 Cosabcli = req.Cosabcli,
                 Tipo = req.Tipo,

@@ -2,8 +2,7 @@
 {
     public class PropuestaCreateRequest
     {
-        public string NombreOperador { get; set; } = null!;
-        public string Dni { get; set; } = null!;
+        public string NombreOperador { get; set; } = null!;       
         public string CorreoCorporativo { get; set; } = null!;
         public string Cosabcli { get; set; } = null!;
         public string Tipo { get; set; } = null!;

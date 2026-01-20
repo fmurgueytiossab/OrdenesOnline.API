@@ -23,7 +23,6 @@ namespace OrdenesOnline.Application.Services
             {
                 propuestaId = propuesta.Id,
                 nombreOperador = propuesta.NombreOperador,
-                dni = propuesta.Dni,
                 correo = propuesta.CorreoCorporativo,
                 cosabcli = propuesta.Cosabcli,
                 tipo = propuesta.Tipo,
