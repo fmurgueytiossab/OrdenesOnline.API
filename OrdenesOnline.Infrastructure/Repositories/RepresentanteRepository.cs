@@ -55,7 +55,7 @@ namespace OrdenesOnline.Infrastructure.Repositories
         {
             var result = _context.Set<PasswordValidationResult>()
                 .FromSqlRaw(
-                    "EXEC usp_geRepresentantePassword @correo, @password",
+                    "EXEC usp_isValidRepresentantePassword @correo, @password",
                     new SqlParameter("@correo", correo),
                     new SqlParameter("@password", password)
                 )

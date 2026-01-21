@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrdenesOnline.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+56e0b4acf3e96215a6a55dec4d4326e2b89657d4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+af4acd6b55925f155e3d3019f02661899f5555ca")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrdenesOnline.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrdenesOnline.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

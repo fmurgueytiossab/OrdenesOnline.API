@@ -149,6 +149,32 @@
   },
   {
     "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "Me",
+    "RelativePath": "api/Representante/me",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
+    "Method": "ValidateEmail",
+    "RelativePath": "api/Representante/validate",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.RepresentanteController",
     "Method": "ValidatePassword",
     "RelativePath": "api/Representante/validate-password",
     "HttpMethod": "POST",

@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline_API.Models;
+using System.Security.Claims;
 
 namespace OrdenesOnline_API.Controllers
 {
@@ -11,10 +13,12 @@ namespace OrdenesOnline_API.Controllers
     public class RepresentanteController : ControllerBase
     {
         private readonly RepresentanteService _service;
+        private readonly TokenService _tokenService;
 
-        public RepresentanteController(RepresentanteService service)
+        public RepresentanteController(RepresentanteService service, TokenService tokenService)
         {
-            _service = service;            
+            _service = service;
+            _tokenService = tokenService;
         }
 
         [HttpGet]
@@ -73,8 +77,7 @@ namespace OrdenesOnline_API.Controllers
         }
 
         [HttpPost("validate-password")]
-        public async Task<IActionResult> ValidatePassword(
-        [FromBody] ValidatePasswordRequest request)
+        public async Task<IActionResult> ValidatePassword([FromBody] ValidatePasswordRequest request)
         {
             var result = await _service.ValidatePassword(
                 request.Correo,
@@ -84,11 +87,33 @@ namespace OrdenesOnline_API.Controllers
             if (result == null || result.IsValid == 0)
                 return Ok(new { isValid = false });
 
+            var token = _tokenService.GenerateToken(request.Correo, result.UserId);
+
             return Ok(new
             {
                 isValid = true,
-                userId = result.UserId
+                userId = result.UserId,
+                token = token
             });
         }
+
+        [HttpGet("validate")]
+        public IActionResult ValidateEmail([FromQuery] string token)
+        {
+            var isValidToken = _tokenService.ValidateToken(token);
+            return Ok(isValidToken);
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var representante = await _service.GetById(int.Parse(userId));
+
+            return Ok(representante);
+        }
+
     }
 }

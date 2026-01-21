@@ -263,6 +263,39 @@
           }
         }
       }
+    },
+    "/api/Representante/validate": {
+      "get": {
+        "tags": [
+          "Representante"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Representante/me": {
+      "get": {
+        "tags": [
+          "Representante"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -302,7 +335,7 @@
             "type": "number",
             "format": "double"
           },
-          "moneda": {
+          "mercado": {
             "type": "string",
             "nullable": true
           }
@@ -340,7 +373,7 @@
             "type": "number",
             "format": "double"
           },
-          "moneda": {
+          "mercado": {
             "type": "string",
             "nullable": true
           }

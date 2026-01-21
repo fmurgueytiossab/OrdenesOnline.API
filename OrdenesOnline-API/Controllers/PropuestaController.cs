@@ -49,7 +49,7 @@ namespace OrdenesOnline_API.Controllers
                 Cantidad = req.Cantidad,
                 Instrumento = req.Instrumento,
                 Precio = req.Precio,
-                Moneda = req.Moneda
+                Mercado = req.Mercado
             };
 
             await _service.Add(propuesta);

@@ -335,3 +335,4 @@ C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline-API\obj\Debug\net10.
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline-API\obj\Debug\net10.0\OrdenesOnline-API.genruntimeconfig.cache
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline-API\obj\Debug\net10.0\ref\OrdenesOnline-API.dll
 C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline-API\obj\Debug\net10.0\OrdenesOnline-API.sourcelink.json
+C:\Users\Fernando\Documents\OrdenesOnline.API\OrdenesOnline-API\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

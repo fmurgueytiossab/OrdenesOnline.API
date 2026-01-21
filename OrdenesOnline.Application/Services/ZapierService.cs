@@ -29,7 +29,7 @@ namespace OrdenesOnline.Application.Services
                 cantidad = propuesta.Cantidad,
                 instrumento = propuesta.Instrumento,
                 precio = propuesta.Precio,
-                moneda = propuesta.Moneda,
+                mercado = propuesta.Mercado,
                 fecha = DateTime.UtcNow
             };
 

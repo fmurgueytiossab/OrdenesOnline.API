@@ -18,6 +18,6 @@ namespace OrdenesOnline.Domain.entities
         public int Cantidad { get; set; }
         public string Instrumento { get; set; } = null!;
         public decimal Precio { get; set; }
-        public string Moneda { get; set; } = null!;
+        public string Mercado { get; set; } = null!;
     }
 }
