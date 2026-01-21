@@ -18,6 +18,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+builder.Services.AddDbContext<OpersabDbContext>(options =>
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Opersab")
+    );
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -52,6 +59,9 @@ builder.Services.AddScoped<PropuestaService>();
 
 builder.Services.AddScoped<IRepresentanteRepository, RepresentanteRepository>();
 builder.Services.AddScoped<RepresentanteService>();
+
+builder.Services.AddScoped<IValorRepository, ValorRepository>();
+builder.Services.AddScoped<ValorService>();
 
 builder.Services.AddHttpClient<ZapierService>();
 builder.Services.AddScoped<TokenService>();

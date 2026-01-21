@@ -188,5 +188,15 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OrdenesOnline_API.Controllers.ValorController",
+    "Method": "Get",
+    "RelativePath": "api/Valor",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
   }
 ]

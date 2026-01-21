@@ -296,6 +296,18 @@
           }
         }
       }
+    },
+    "/api/Valor": {
+      "get": {
+        "tags": [
+          "Valor"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -452,6 +464,9 @@
     },
     {
       "name": "Representante"
+    },
+    {
+      "name": "Valor"
     }
   ]
 }
