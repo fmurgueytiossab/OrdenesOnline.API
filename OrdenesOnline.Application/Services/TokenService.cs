@@ -24,16 +24,15 @@ namespace OrdenesOnline.Application.Services
 
             var claims = new[]
             {
-               new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-               new Claim(JwtRegisteredClaimNames.Email, email),
-
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Email, email)
             };
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(180),
+                expires: DateTime.UtcNow.AddMinutes(30),
                 signingCredentials: creds
             );
 

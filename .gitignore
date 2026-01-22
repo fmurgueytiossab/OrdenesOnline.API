@@ -22,3 +22,7 @@ artifacts/
 # ===== OS =====
 .DS_Store
 Thumbs.db
+/OrdenesOnline-API/.vs
+*.dll
+/OrdenesOnline.Application/obj
+/OrdenesOnline-API/obj

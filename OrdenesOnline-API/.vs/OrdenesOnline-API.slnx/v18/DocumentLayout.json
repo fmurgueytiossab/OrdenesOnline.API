@@ -3,21 +3,21 @@
   "WorkspaceRootPath": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{725BFC51-A400-4094-B2D1-D80A9B101DF0}|..\\OrdenesOnline.Infrastructure\\OrdenesOnline.Infrastructure.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.infrastructure\\repositories\\valorrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{92A7F414-3CF7-43E2-97C3-57845681F608}|..\\OrdenesOnline.Domain\\OrdenesOnline.Domain.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.domain\\entities\\valor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline-api\\controllers\\representantecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|solutionrelative:controllers\\representantecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D59154FB-3CA5-4715-8C01-45B6FC957D85}|..\\OrdenesOnline.Application\\OrdenesOnline.Application.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.application\\services\\tokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline-api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline-api\\controllers\\valorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5B1A729C-246E-4F2C-03CB-7402DE4CE791}|OrdenesOnline-API.csproj|solutionrelative:controllers\\valorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D59154FB-3CA5-4715-8C01-45B6FC957D85}|..\\OrdenesOnline.Application\\OrdenesOnline.Application.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.application\\services\\valorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{92A7F414-3CF7-43E2-97C3-57845681F608}|..\\OrdenesOnline.Domain\\OrdenesOnline.Domain.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.domain\\interfaces\\ivalorrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{725BFC51-A400-4094-B2D1-D80A9B101DF0}|..\\OrdenesOnline.Infrastructure\\OrdenesOnline.Infrastructure.csproj|c:\\users\\fernando\\documents\\ordenesonline.api\\ordenesonline.infrastructure\\persistence\\opersabdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,71 +27,71 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAACcAAAAAAAAAAAAAAD4AAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T17:58:30.682Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "ValorController.cs",
-              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\ValorController.cs",
-              "RelativeDocumentMoniker": "Controllers\\ValorController.cs",
-              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\ValorController.cs",
-              "RelativeToolTip": "Controllers\\ValorController.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAqwBoAAAAJAAAAAAAAAA==",
+              "Title": "Valor.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\entities\\Valor.cs",
+              "RelativeDocumentMoniker": "..\\OrdenesOnline.Domain\\entities\\Valor.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\entities\\Valor.cs",
+              "RelativeToolTip": "..\\OrdenesOnline.Domain\\entities\\Valor.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAwAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T17:56:05.07Z",
+              "WhenOpened": "2026-01-22T17:05:52.922Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ValorService.cs",
-              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\ValorService.cs",
-              "RelativeDocumentMoniker": "..\\OrdenesOnline.Application\\Services\\ValorService.cs",
-              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\ValorService.cs",
-              "RelativeToolTip": "..\\OrdenesOnline.Application\\Services\\ValorService.cs",
-              "ViewState": "AgIAAAIAAAAAAAAAAAAWwA8AAAAJAAAAAAAAAA==",
+              "DocumentIndex": 0,
+              "Title": "ValorRepository.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Infrastructure\\Repositories\\ValorRepository.cs",
+              "RelativeDocumentMoniker": "..\\OrdenesOnline.Infrastructure\\Repositories\\ValorRepository.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Infrastructure\\Repositories\\ValorRepository.cs",
+              "RelativeToolTip": "..\\OrdenesOnline.Infrastructure\\Repositories\\ValorRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T17:54:07.48Z",
+              "WhenOpened": "2026-01-22T17:05:12.969Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "IValorRepository.cs",
-              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\interfaces\\IValorRepository.cs",
-              "RelativeDocumentMoniker": "..\\OrdenesOnline.Domain\\interfaces\\IValorRepository.cs",
-              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Domain\\interfaces\\IValorRepository.cs",
-              "RelativeToolTip": "..\\OrdenesOnline.Domain\\interfaces\\IValorRepository.cs",
-              "ViewState": "AgIAAAEAAAAAAAAAAADwvwsAAAAFAAAAAAAAAA==",
+              "Title": "TokenService.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\TokenService.cs",
+              "RelativeDocumentMoniker": "..\\OrdenesOnline.Application\\Services\\TokenService.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Application\\Services\\TokenService.cs",
+              "RelativeToolTip": "..\\OrdenesOnline.Application\\Services\\TokenService.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAAAIwBcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T17:53:04.289Z",
+              "WhenOpened": "2026-01-22T15:51:55.369Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "RepresentanteController.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\RepresentanteController.cs",
+              "RelativeDocumentMoniker": "Controllers\\RepresentanteController.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Controllers\\RepresentanteController.cs",
+              "RelativeToolTip": "Controllers\\RepresentanteController.cs",
+              "ViewState": "AgIAAGkAAAAAAAAAAAAUwHAAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-22T15:46:49.707Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 4,
-              "Title": "OpersabDbContext.cs",
-              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Infrastructure\\Persistence\\OpersabDbContext.cs",
-              "RelativeDocumentMoniker": "..\\OrdenesOnline.Infrastructure\\Persistence\\OpersabDbContext.cs",
-              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline.Infrastructure\\Persistence\\OpersabDbContext.cs",
-              "RelativeToolTip": "..\\OrdenesOnline.Infrastructure\\Persistence\\OpersabDbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\Fernando\\Documents\\OrdenesOnline.API\\OrdenesOnline-API\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAADgvygAAABuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T17:49:35.523Z",
+              "WhenOpened": "2026-01-21T17:58:30.682Z",
               "EditorCaption": ""
             }
           ]

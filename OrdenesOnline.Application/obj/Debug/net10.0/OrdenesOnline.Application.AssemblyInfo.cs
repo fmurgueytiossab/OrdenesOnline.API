@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrdenesOnline.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8cf07216f80903faabf14594c419ea8a8cbec443")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+76b978d0b3cc3b3a850f4e26b7611dac03d72744")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrdenesOnline.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrdenesOnline.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

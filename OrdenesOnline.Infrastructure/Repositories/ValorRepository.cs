@@ -19,16 +19,18 @@ namespace OrdenesOnline.Infrastructure.Repositories
 
         public async Task<IEnumerable<Valor>> GetAllAsync()
         {
-            var datos = _context.Valores
-                .Select(v => new Valor
-                {
-                    Cosabval = v.Cosabval,
-                    Desval = v.Desval,
-                    Comon = v.Comon
-                })
-                .ToList();
+            var datos = await _context.Valores
+                        .Where(v => v.Estado != "9")
+                        .Select(v => new Valor
+                        {
+                            Cosabval = v.Cosabval,
+                            Mnemo = v.Mnemo,
+                            Comon = v.Comon
+                        })
+                        .ToListAsync();
 
             return datos;
+
         }
     }
 }

@@ -9,7 +9,8 @@ namespace OrdenesOnline.Domain.entities
     {
         [Key]
         public string Cosabval { get; set; }
-        public string Desval { get; set; }
+        public string Mnemo { get; set; }
         public string Comon { get; set; }
+        public string Estado { get; set; }
     }
 }

@@ -110,10 +110,13 @@ namespace OrdenesOnline_API.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var representante = await _service.GetById(int.Parse(userId));
+            if (userId == null)
+                return Unauthorized();
 
+            var representante = await _service.GetById(int.Parse(userId));
             return Ok(representante);
         }
+
 
     }
 }
