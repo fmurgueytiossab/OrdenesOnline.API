@@ -17,7 +17,7 @@ namespace OrdenesOnline.Application.Services
             _httpClient = httpClient;
         }
 
-        public async Task EnviarPropuestaCreada(Propuesta propuesta)
+        public async Task EnviarPropuestaCreada(Propuesta propuesta, string moneda)
         {
             var payload = new
             {
@@ -28,12 +28,15 @@ namespace OrdenesOnline.Application.Services
                 tipo = propuesta.Tipo,
                 cantidad = propuesta.Cantidad,
                 instrumento = propuesta.Instrumento,
+                tipoOrden = propuesta.TipoOrden,
                 precio = propuesta.Precio,
                 mercado = propuesta.Mercado,
+                moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow
             };
 
             await _httpClient.PostAsJsonAsync(ZapierWebhookUrl, payload);
         }
+
     }
 }

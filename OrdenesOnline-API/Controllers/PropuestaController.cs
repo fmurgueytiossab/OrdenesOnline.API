@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OrdenesOnline.Application.Services;
+using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
-using OrdenesOnline_API.Models;
 
 namespace OrdenesOnline_API.Controllers
 {
@@ -18,36 +18,35 @@ namespace OrdenesOnline_API.Controllers
             _zapierService = zapierService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Get()
-        {
-            return Ok(await _service.GetAll());
-        }
+        //[HttpGet]
+        //public async Task<IActionResult> Get()
+        //{
+        //    return Ok(await _service.GetAll());
+        //}
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
-        {
-            var propuesta = await _service.GetById(id);
-            if (propuesta == null) return NotFound();
-            return Ok(propuesta);
-        }
+        //[HttpGet("{id}")]
+        //public async Task<IActionResult> Get(int id)
+        //{
+        //    var propuesta = await _service.GetById(id);
+        //    if (propuesta == null) return NotFound();
+        //    return Ok(propuesta);
+        //}
 
         [HttpPost]
         public async Task<IActionResult> Post(PropuestaCreateRequest req)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var propuesta = new Propuesta
             {
-                NombreOperador = req.NombreOperador,                
+                NombreOperador = req.NombreOperador,
                 CorreoCorporativo = req.CorreoCorporativo,
                 Cosabcli = req.Cosabcli,
                 Tipo = req.Tipo,
                 Cantidad = req.Cantidad,
                 Instrumento = req.Instrumento,
+                TipoOrden = req.TipoOrden,
                 Precio = req.Precio,
                 Mercado = req.Mercado
             };
@@ -56,7 +55,7 @@ namespace OrdenesOnline_API.Controllers
 
             try
             {
-                await _zapierService.EnviarPropuestaCreada(propuesta);
+                await _zapierService.EnviarPropuestaCreada(propuesta, req.Moneda);
 
                 return Ok(new
                 {
@@ -66,8 +65,6 @@ namespace OrdenesOnline_API.Controllers
             }
             catch
             {
-                // idealmente loggear ex
-
                 return Ok(new
                 {
                     success = true,
@@ -76,18 +73,19 @@ namespace OrdenesOnline_API.Controllers
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Put(Propuesta propuesta)
-        {
-            await _service.Update(propuesta);
-            return Ok();
-        }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await _service.Delete(id);
-            return Ok();
-        }
+        //[HttpPut]
+        //public async Task<IActionResult> Put(Propuesta propuesta)
+        //{
+        //    await _service.Update(propuesta);
+        //    return Ok();
+        //}
+
+        //[HttpDelete("{id}")]
+        //public async Task<IActionResult> Delete(int id)
+        //{
+        //    await _service.Delete(id);
+        //    return Ok();
+        //}
     }
 }

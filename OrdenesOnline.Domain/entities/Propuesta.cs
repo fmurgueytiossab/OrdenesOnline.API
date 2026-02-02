@@ -15,9 +15,11 @@ namespace OrdenesOnline.Domain.entities
         public string CorreoCorporativo { get; set; } = null!;
         public string Cosabcli { get; set; } = null!;
         public string Tipo { get; set; } = null!;
+        [Column("Tipo_Orden")]
+        public string TipoOrden { get; set; } = null!;
         public int Cantidad { get; set; }
         public string Instrumento { get; set; } = null!;
-        public decimal Precio { get; set; }
+        public decimal? Precio { get; set; }
         public string Mercado { get; set; } = null!;
     }
 }

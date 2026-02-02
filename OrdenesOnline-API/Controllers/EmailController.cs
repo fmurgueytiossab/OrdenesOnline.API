@@ -36,11 +36,11 @@ namespace OrdenesOnline_API.Controllers
 
                     var expiration = DateTime.UtcNow.AddMinutes(60);
 
-                    var link = $"http://localhost:4200/change-password?token={token}";
+                    var link = $"https://10.80.1.15/OrdenesOnline/change-password?token={token}";
 
                     var html = $@"
-                <p>Haz clic aquí para continuar:</p>
-                <a href='{link}' style='color: #1a73e8; font-size: 16px;'>Validar formulario</a>";
+                <p>Para poder obtener una nueva contraseña haga click aqui:</p>
+                <a href='{link}' style='color: #1a73e8; font-size: 16px;'>Nueva contraseña</a>";
 
                     // Enviar correo
                     await _emailService.SendEmailAsync(request.Email, "Validación", html);
