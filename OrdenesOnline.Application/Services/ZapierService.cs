@@ -29,7 +29,7 @@ namespace OrdenesOnline.Application.Services
                 cantidad = propuesta.Cantidad,
                 instrumento = propuesta.Instrumento,
                 tipoOrden = propuesta.TipoOrden,
-                precio = propuesta.Precio,
+                precio = propuesta.TipoOrden == "A Mercado" ? propuesta.TipoOrden : propuesta.Precio.ToString(),
                 mercado = propuesta.Mercado,
                 moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow
