@@ -120,7 +120,7 @@ namespace OrdenesOnline_API.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst("userId")?.Value;
 
             if (userId == null)
                 return Unauthorized();

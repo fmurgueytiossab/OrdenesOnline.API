@@ -12,5 +12,6 @@ namespace OrdenesOnline.Domain.entities
         public string Mnemo { get; set; }
         public string Comon { get; set; }
         public string Estado { get; set; }
+        public string Tival { get; set; }
     }
 }

@@ -43,7 +43,7 @@ namespace OrdenesOnline_API.Controllers
                 <a href='{link}' style='color: #1a73e8; font-size: 16px;'>Nueva contraseña</a>";
 
                     // Enviar correo
-                    await _emailService.SendEmailAsync(request.Email, "Validación", html);
+                    await _emailService.SendEmailAsync(request.Email, "Recuperar contraseña de OrdenesOnline", html);
                 }
 
                 // Siempre retornar OK, aunque cliente no exista

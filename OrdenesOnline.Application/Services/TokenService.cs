@@ -24,8 +24,8 @@ namespace OrdenesOnline.Application.Services
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email)
+                new Claim("userId", userId.ToString()),
+                new Claim("email", email)
             };
 
             var token = new JwtSecurityToken(
@@ -61,7 +61,7 @@ namespace OrdenesOnline.Application.Services
                 var jwtToken = (JwtSecurityToken)validatedToken;
 
                 return jwtToken.Claims
-                    .FirstOrDefault(x => x.Type == ClaimTypes.Email)
+                    .FirstOrDefault(x => x.Type == "email")
                     ?.Value;
             }
             catch

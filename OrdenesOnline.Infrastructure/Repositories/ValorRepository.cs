@@ -20,12 +20,14 @@ namespace OrdenesOnline.Infrastructure.Repositories
         public async Task<IEnumerable<Valor>> GetAllAsync()
         {
             var datos = await _context.Valores
-                        .Where(v => v.Estado != "9")
+                        .AsNoTracking()
+                        .Where(v => v.Estado != "9" && v.Tival == "1")
                         .Select(v => new Valor
                         {
                             Cosabval = v.Cosabval,
                             Mnemo = v.Mnemo,
-                            Comon = v.Comon
+                            Comon = v.Comon,
+                            Tival = v.Tival
                         })
                         .ToListAsync();
 
