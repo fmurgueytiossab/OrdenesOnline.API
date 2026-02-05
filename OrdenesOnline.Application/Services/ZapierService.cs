@@ -10,7 +10,7 @@ namespace OrdenesOnline.Application.Services
     {
         private readonly HttpClient _httpClient;
         private const string ZapierWebhookUrl =
-            "https://hooks.zapier.com/hooks/catch/25114517/urvh202/"; // tu URL real
+            "https://hooks.zapier.com/hooks/catch/25114517/ug8php7/"; // tu URL real
 
         public ZapierService(HttpClient httpClient)
         {
@@ -29,10 +29,13 @@ namespace OrdenesOnline.Application.Services
                 cantidad = propuesta.Cantidad,
                 instrumento = propuesta.Instrumento,
                 tipoOrden = propuesta.TipoOrden,
-                precio = propuesta.TipoOrden == "A Mercado" ? propuesta.TipoOrden : propuesta.Precio.ToString(),
+                precio = propuesta.TipoOrden == "Mercado" ? propuesta.TipoOrden : propuesta.Precio.ToString(),
                 mercado = propuesta.Mercado,
                 moneda = moneda, // 👈 aquí
-                fecha = DateTime.UtcNow
+                fecha = DateTime.UtcNow,
+                texto = propuesta.Tipo + " " + propuesta.Cantidad + (propuesta.Cantidad != 1 ? " acciones de " : " acción de ") + propuesta.Instrumento +
+                        (propuesta.Precio == null ? " a precio de mercado" : " a un precio de " + propuesta.Precio + " cada acción") +
+                        " en el mercado " + propuesta.Mercado + "."
             };
 
             await _httpClient.PostAsJsonAsync(ZapierWebhookUrl, payload);
