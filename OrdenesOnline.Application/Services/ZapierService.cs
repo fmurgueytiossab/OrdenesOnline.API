@@ -34,7 +34,7 @@ namespace OrdenesOnline.Application.Services
                 moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow,
                 texto = propuesta.Tipo + " " + propuesta.Cantidad + (propuesta.Cantidad != 1 ? " acciones de " : " acción de ") + propuesta.Instrumento +
-                        (propuesta.Precio == null ? " a precio de mercado" : " a un precio de " + propuesta.Precio + " cada acción") +
+                        (propuesta.Precio == null ? " a precio de mercado" : " a un precio de " + propuesta.Precio + " " + moneda + " cada acción") +
                         " en el mercado " + propuesta.Mercado + "."
             };
 
