@@ -1,8 +1,6 @@
-﻿using OrdenesOnline.Domain.entities;
-using System;
-using System.Collections.Generic;
+﻿using OrdenesOnline.Domain.DTO;
+using OrdenesOnline.Domain.entities;
 using System.Net.Http.Json;
-using System.Text;
 
 namespace OrdenesOnline.Application.Services
 {
@@ -17,7 +15,7 @@ namespace OrdenesOnline.Application.Services
             _httpClient = httpClient;
         }
 
-        public async Task EnviarPropuestaCreada(Propuesta propuesta, string moneda)
+        public async Task EnviarPropuestaCreada(Propuesta propuesta, string dni, string moneda)
         {
             var payload = new
             {
@@ -33,9 +31,8 @@ namespace OrdenesOnline.Application.Services
                 mercado = propuesta.Mercado,
                 moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow,
-                texto = propuesta.Tipo + " " + propuesta.Cantidad + (propuesta.Cantidad != 1 ? " acciones de " : " acción de ") + propuesta.Instrumento +
-                        (propuesta.Precio == null ? " a precio de mercado" : " a un precio de " + propuesta.Precio + " " + moneda + " cada acción") +
-                        " en el mercado " + propuesta.Mercado + "."
+                monto = propuesta.TipoOrden == "Mercado" ? 0 : propuesta.Precio * propuesta.Cantidad,
+                dni = dni
             };
 
             await _httpClient.PostAsJsonAsync(ZapierWebhookUrl, payload);

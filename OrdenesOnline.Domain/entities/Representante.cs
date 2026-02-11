@@ -17,6 +17,7 @@ namespace OrdenesOnline.Domain.entities
         public byte[] Password { get; set; } = null!;
         public string Nombre { get; set; } = null!;
         public string Cosabcli { get; set; } = null!;
-        
+        public string Dni { get; set; } = null!;
+
     }
 }

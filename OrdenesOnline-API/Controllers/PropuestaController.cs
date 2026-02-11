@@ -48,14 +48,14 @@ namespace OrdenesOnline_API.Controllers
                 Instrumento = req.Instrumento,
                 TipoOrden = req.TipoOrden,
                 Precio = req.Precio,
-                Mercado = req.Mercado
+                Mercado = req.Mercado,
             };
 
             await _service.Add(propuesta);
 
             try
             {
-                await _zapierService.EnviarPropuestaCreada(propuesta, req.Moneda);
+                await _zapierService.EnviarPropuestaCreada(propuesta, req.Dni, req.Moneda);
 
                 return Ok(new
                 {

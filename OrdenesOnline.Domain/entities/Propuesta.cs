@@ -21,5 +21,6 @@ namespace OrdenesOnline.Domain.entities
         public string Instrumento { get; set; } = null!;
         public decimal? Precio { get; set; }
         public string Mercado { get; set; } = null!;
+
     }
 }

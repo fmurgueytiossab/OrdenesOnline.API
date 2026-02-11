@@ -18,7 +18,7 @@ namespace OrdenesOnline.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Propuesta>()
-                .ToTable("propuestas");
+                .ToTable("propuesta");
 
             modelBuilder.Entity<Representante>()
                 .ToTable("UserRepresentante");

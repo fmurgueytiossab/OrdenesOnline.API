@@ -19,15 +19,15 @@ namespace OrdenesOnline.Infrastructure.Repositories
             return await _context.Propuestas.ToListAsync();
         }
 
-        public async Task AddAsync(Propuesta cliente)
+        public async Task AddAsync(Propuesta propuesta)
         {
-            await _context.Propuestas.AddAsync(cliente);
+            await _context.Propuestas.AddAsync(propuesta);
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Propuesta cliente)
+        public async Task UpdateAsync(Propuesta propuesta)
         {
-            _context.Propuestas.Update(cliente);
+            _context.Propuestas.Update(propuesta);
             await _context.SaveChangesAsync();
         }
 

@@ -1,7 +1,12 @@
-﻿namespace OrdenesOnline.Domain.DTO
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace OrdenesOnline.Domain.DTO
 {
-    public class PropuestaCreateRequest
+    public class ZapierSendRequest
     {
+        public int Id { get; set; }
         public string NombreOperador { get; set; }
         public string CorreoCorporativo { get; set; }
         public string Cosabcli { get; set; }
@@ -13,5 +18,6 @@
         public string Mercado { get; set; }
         public string Moneda { get; set; }
         public string Dni { get; set; }
+        public decimal? Monto { get; set; }
     }
 }
