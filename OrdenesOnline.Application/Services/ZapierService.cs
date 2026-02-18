@@ -31,7 +31,7 @@ namespace OrdenesOnline.Application.Services
                 mercado = propuesta.Mercado,
                 moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow,
-                monto = propuesta.TipoOrden == "Mercado" ? 0 : propuesta.Precio * propuesta.Cantidad,
+                monto = propuesta.TipoOrden == "Mercado" ? "No aplica" : (propuesta.Precio * propuesta.Cantidad).ToString(),
                 dni = dni
             };
 
