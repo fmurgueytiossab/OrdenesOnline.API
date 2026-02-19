@@ -4,9 +4,6 @@ using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
 using OrdenesOnline.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OrdenesOnline.Infrastructure.Repositories
 {

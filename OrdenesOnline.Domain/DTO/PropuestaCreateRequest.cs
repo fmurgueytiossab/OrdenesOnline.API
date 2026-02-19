@@ -13,5 +13,7 @@
         public string Mercado { get; set; }
         public string Moneda { get; set; }
         public string Dni { get; set; }
+        public string Vigencia { get; set; }
+        public DateTime FechaRegistro  { get; set; }
     }
 }

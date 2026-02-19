@@ -48,7 +48,8 @@ namespace OrdenesOnline_API.Controllers
                 Instrumento = req.Instrumento,
                 TipoOrden = req.TipoOrden,
                 Precio = req.Precio,
-                Mercado = req.Mercado,
+                Vigencia = req.Vigencia,
+                Mercado = req.Mercado,                
             };
 
             await _service.Add(propuesta);

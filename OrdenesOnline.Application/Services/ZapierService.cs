@@ -32,7 +32,8 @@ namespace OrdenesOnline.Application.Services
                 moneda = moneda, // 👈 aquí
                 fecha = DateTime.UtcNow,
                 monto = propuesta.TipoOrden == "Mercado" ? "No aplica" : (propuesta.Precio * propuesta.Cantidad).ToString(),
-                dni = dni
+                dni = dni,
+                vigencia = propuesta.Vigencia
             };
 
             await _httpClient.PostAsJsonAsync(ZapierWebhookUrl, payload);

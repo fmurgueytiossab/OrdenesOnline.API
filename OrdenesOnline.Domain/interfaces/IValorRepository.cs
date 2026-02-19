@@ -1,8 +1,4 @@
-﻿using OrdenesOnline.Domain.DTO;
-using OrdenesOnline.Domain.entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using OrdenesOnline.Domain.entities;
 
 namespace OrdenesOnline.Domain.interfaces
 {

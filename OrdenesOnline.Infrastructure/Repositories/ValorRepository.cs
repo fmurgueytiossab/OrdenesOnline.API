@@ -21,7 +21,7 @@ namespace OrdenesOnline.Infrastructure.Repositories
         {
             var datos = await _context.Valores
                         .AsNoTracking()
-                        .Where(v => v.Estado != "9" && v.Tival == "1")
+                        .Where(v => v.Estado != "9")
                         .Select(v => new Valor
                         {
                             Cosabval = v.Cosabval,

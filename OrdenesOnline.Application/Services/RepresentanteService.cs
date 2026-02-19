@@ -1,10 +1,6 @@
 ﻿using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
-using System;
-using System.Collections.Generic;
-using System.Security.Claims;
-using System.Text;
 
 namespace OrdenesOnline.Application.Services
 {
