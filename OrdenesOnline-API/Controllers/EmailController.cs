@@ -11,12 +11,14 @@ namespace OrdenesOnline_API.Controllers
         private readonly EmailService _emailService;
         private readonly TokenService _tokenService;
         private readonly RepresentanteService _representanteService;
+        private readonly IConfiguration _config;
 
-        public EmailController(EmailService emailService, TokenService tokenService, RepresentanteService representanteService)
+        public EmailController(EmailService emailService, TokenService tokenService, RepresentanteService representanteService, IConfiguration config)
         {
             _emailService = emailService;
             _tokenService = tokenService;
             _representanteService = representanteService;
+            _config = config;
         }
 
         [HttpPost("send-validation")]
@@ -36,7 +38,8 @@ namespace OrdenesOnline_API.Controllers
 
                     var expiration = DateTime.UtcNow.AddMinutes(60);
 
-                    var link = $"https://10.80.1.15/OrdenesOnline/change-password?token={token}";
+                    var baseUrl = _config["App:FrontendUrl"];
+                    var link = $"{baseUrl}/change-password?token={token}";
 
                     var html = $@"
                 <p>Para poder obtener una nueva contraseña haga click aqui:</p>
