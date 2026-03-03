@@ -49,7 +49,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(
+                "http://localhost:4200",
+                "https://ordenes.seminariosab.com.pe"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -74,15 +77,14 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-
-app.UseHttpsRedirection();
-
-app.UseCors("AllowFrontend");
 
 app.MapControllers();
 
