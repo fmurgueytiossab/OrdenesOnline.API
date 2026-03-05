@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OrdenesOnline.Domain.DTO
 {
-    public class ValidatePasswordRequest
+    public class LoginDTO
     {
         public string Correo { get; set; }
         public string Password { get; set; }

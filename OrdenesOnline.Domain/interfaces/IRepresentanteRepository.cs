@@ -9,7 +9,7 @@ namespace OrdenesOnline.Domain.interfaces
         Task AddAsync(Representante representante);
         Task UpdateAsync(Representante representante);
         Task DeleteAsync(int id);
-        Task<PasswordValidationResult?> ValidatePassword(string correoCorporativo, string password);
+        Task<PasswordValidationResult?> Login(string correoCorporativo, string password);
         Task<bool> UpdatePassword(string correoCorporativo, string password);
         Task<Representante?> GetByEmail(string email);
     }

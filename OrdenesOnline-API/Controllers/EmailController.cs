@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
 
@@ -21,6 +22,7 @@ namespace OrdenesOnline_API.Controllers
             _config = config;
         }
 
+        [Authorize]
         [HttpPost("send-validation")]
         public async Task<IActionResult> SendValidationEmail([FromBody] SendValidationEmailRequest request)
         {

@@ -20,6 +20,7 @@ namespace OrdenesOnline_API.Controllers
             _service = service;          
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> Get()
         {

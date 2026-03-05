@@ -48,7 +48,7 @@ namespace OrdenesOnline.Infrastructure.Repositories
             return await _context.Representantes.FindAsync(id);
         }
 
-        public async Task<PasswordValidationResult?> ValidatePassword(string correo,string password)
+        public async Task<PasswordValidationResult?> Login(string correo,string password)
         {
             var result = _context.Set<PasswordValidationResult>()
                 .FromSqlRaw(

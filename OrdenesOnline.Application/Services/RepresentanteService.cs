@@ -22,7 +22,7 @@ namespace OrdenesOnline.Application.Services
         public Task Add(Representante c) => _repo.AddAsync(c);
         public Task Update(Representante c) => _repo.UpdateAsync(c);
         public Task Delete(int id) => _repo.DeleteAsync(id);
-        public Task<PasswordValidationResult?> ValidatePassword(string correoCorporativo, string password) => _repo.ValidatePassword(correoCorporativo,password);
+        public Task<PasswordValidationResult?> Login(string correoCorporativo, string password) => _repo.Login(correoCorporativo,password);
         public Task<bool> UpdatePassword(string correoCorporativo, string password) => _repo.UpdatePassword(correoCorporativo, password);
 
         public async Task<bool> UpdatePasswordByToken(string token, string password)
