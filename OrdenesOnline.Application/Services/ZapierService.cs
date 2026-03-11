@@ -8,9 +8,7 @@ namespace OrdenesOnline.Application.Services
     public class ZapierService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _zapierWebhookUrl;
-        private const string ZapierWebhookUrl =
-            "https://hooks.zapier.com/hooks/catch/25114517/ulvjqar/"; // tu URL real
+        private readonly string _zapierWebhookUrl;        
 
         public ZapierService(HttpClient httpClient, IConfiguration configuration)
         {
@@ -42,11 +40,8 @@ namespace OrdenesOnline.Application.Services
                 vigencia = propuesta.Vigencia
             };
 
-            var response = await _httpClient.PostAsJsonAsync(_zapierWebhookUrl, payload);
-            Console.WriteLine(response.StatusCode);
+            await _httpClient.PostAsJsonAsync(_zapierWebhookUrl, payload);
 
-            response = await _httpClient.PostAsJsonAsync(ZapierWebhookUrl, payload);
-            Console.WriteLine(response.StatusCode);
         }
 
     }
