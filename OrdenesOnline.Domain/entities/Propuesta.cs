@@ -18,6 +18,7 @@ namespace OrdenesOnline.Domain.entities
         [Column("Tipo_Orden")]
         public string TipoOrden { get; set; } = null!;
         public int Cantidad { get; set; }
+        public decimal? Monto {  get; set; } = null!;
         public string Instrumento { get; set; } = null!;
         public decimal? Precio { get; set; }
         public string Vigencia { get; set; } = null!;

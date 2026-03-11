@@ -10,6 +10,7 @@
         public int Cantidad { get; set; }
         public string Instrumento { get; set; }
         public decimal? Precio { get; set; } = null;
+        public decimal? Monto { get; set; }
         public string Mercado { get; set; }
         public string Moneda { get; set; }
         public string Dni { get; set; }
