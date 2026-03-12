@@ -20,7 +20,7 @@ namespace OrdenesOnline.Application.Services
         {
             var payload = new
             {
-                propuestaId = propuesta.Id,
+                propuestaId = propuesta.PropuestaId,
                 nombreOperador = propuesta.NombreOperador,
                 correo = propuesta.CorreoCorporativo,
                 cosabcli = propuesta.Cosabcli,

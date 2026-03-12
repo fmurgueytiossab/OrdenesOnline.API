@@ -7,7 +7,7 @@ namespace OrdenesOnline.Domain.entities
 {
     public class Propuesta
     {
-        public int Id { get; set; }
+        public int PropuestaId { get; set; }
 
         [Column("Nombre_Operador")]
         public string NombreOperador { get; set; } = null!;       
