@@ -22,7 +22,7 @@ namespace OrdenesOnline_API.Controllers
             _config = config;
         }
 
-        [Authorize]
+        
         [HttpPost("send-validation")]
         public async Task<IActionResult> SendValidationEmail([FromBody] SendValidationEmailRequest request)
         {
@@ -32,11 +32,11 @@ namespace OrdenesOnline_API.Controllers
             try
             {
                 // Buscar cliente existente
-                var clienteExistente = await _representanteService.GetByEmail(request.Email);
+                var representante = await _representanteService.GetByEmail(request.Email);
 
-                if (clienteExistente != null)
+                if (representante != null)
                 {
-                    var token = _tokenService.GenerateToken(request.Email, clienteExistente.UserId);
+                    var token = _tokenService.GenerateToken(request.Email, representante.RepresentanteId);
 
                     var expiration = DateTime.UtcNow.AddMinutes(60);
 

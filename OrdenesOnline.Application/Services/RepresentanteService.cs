@@ -16,7 +16,7 @@ namespace OrdenesOnline.Application.Services
         }
 
         public Task<IEnumerable<Representante>> GetAll() => _repo.GetAllAsync();
-        public Task<Representante?> GetById(int id) => _repo.GetByIdAsync(id);
+        public Task<RepresentanteDTO?> GetById(int id) => _repo.GetByIdAsync(id);
 
         public Task<Representante?> GetByEmail(string email) => _repo.GetByEmail(email);
         public Task Add(Representante c) => _repo.AddAsync(c);

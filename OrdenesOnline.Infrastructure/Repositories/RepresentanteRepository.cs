@@ -43,9 +43,28 @@ namespace OrdenesOnline.Infrastructure.Repositories
             }
         }
 
-        public async Task<Representante> GetByIdAsync(int id)
+        public async Task<RepresentanteDTO> GetByIdAsync(int RepresentanteId)
         {
-            return await _context.Representantes.FindAsync(id);
+            var user = await _context.Representantes
+                .Where(u => u.RepresentanteId == RepresentanteId)
+                .Select(u => new RepresentanteDTO
+                {
+                    RepresentanteId = u.RepresentanteId,
+                    Nombre = u.Nombre,
+                    CorreoCorporativo = u.CorreoCorporativo,
+                    Dni = u.Dni
+                })
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return null;
+
+            user.Cosabcli = await _context.CodeRepresentantes
+                .Where(c => c.RepresentanteId == RepresentanteId)
+                .Select(c => c.Cosabcli)
+                .ToListAsync();
+
+            return user;
         }
 
         public async Task<PasswordValidationResult?> Login(string correo,string password)

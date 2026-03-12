@@ -32,12 +32,12 @@ namespace OrdenesOnline_API.Controllers
             if (result == null || result.IsValid == 0)
                 return Ok(new { isValid = false });
 
-            var token = _tokenService.GenerateToken(request.Correo, result.UserId);
+            var token = _tokenService.GenerateToken(request.Correo, result.RepresentanteId);
 
             return Ok(new
             {
                 isValid = true,
-                userId = result.UserId,
+                userId = result.RepresentanteId,
                 token = token
             });
         }
@@ -58,12 +58,12 @@ namespace OrdenesOnline_API.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var representanteId = User.FindFirst("userId")?.Value;
 
-            if (userId == null)
+            if (representanteId == null)
                 return Unauthorized();
 
-            var representante = await _service.GetById(int.Parse(userId));
+            var representante = await _service.GetById(int.Parse(representanteId));
             return Ok(representante);
         }
 

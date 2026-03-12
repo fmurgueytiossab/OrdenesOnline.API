@@ -27,16 +27,21 @@ namespace OrdenesOnline_API.Controllers
         {
             var userIdClaim = User.FindFirst("userId")?.Value;
 
-            if (!int.TryParse(userIdClaim, out var userId))
+            if (!int.TryParse(userIdClaim, out var representanteId))
                 return Unauthorized();
 
-            var representante = await _representanteService.GetById(userId);
+            var representante = await _representanteService.GetById(representanteId);
+
+            if (!representante.Cosabcli.Contains(req.Cosabcli))
+            {
+                return Forbid();
+            }
 
             var propuesta = new Propuesta
             {
                 NombreOperador = representante.Nombre,
                 CorreoCorporativo = representante.CorreoCorporativo,
-                Cosabcli = representante.Cosabcli,
+                Cosabcli = req.Cosabcli,
                 Tipo = req.Tipo,
                 Cantidad = req.Cantidad,
                 Instrumento = req.Instrumento,

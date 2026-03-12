@@ -12,6 +12,7 @@ namespace OrdenesOnline.Infrastructure.Persistence
 
         public DbSet<Propuesta> Propuestas { get; set; }
         public DbSet<Representante> Representantes { get; set; }
+        public DbSet<CodeRepresentante> CodeRepresentantes { get; set; }
         public DbSet<PasswordValidationResult> PasswordValidationResults { get; set; }
 
 
@@ -22,6 +23,10 @@ namespace OrdenesOnline.Infrastructure.Persistence
 
             modelBuilder.Entity<Representante>()
                 .ToTable("UserRepresentante");
+
+            modelBuilder.Entity<CodeRepresentante>()
+                .ToTable("CodeRepresentante")
+                .HasKey(x => new { x.RepresentanteId, x.Cosabcli });
 
             modelBuilder.Entity<PasswordValidationResult>().HasNoKey();
         }
