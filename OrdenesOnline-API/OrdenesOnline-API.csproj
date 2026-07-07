@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OrdenesOnline_API</RootNamespace>
+    <UserSecretsId>b1d635d9-3e20-415b-bbbe-659d4ba92878</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

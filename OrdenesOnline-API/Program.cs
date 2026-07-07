@@ -46,8 +46,9 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "http://localhost:4200",
-                "https://ordenes.seminariosab.com.pe"
+                "https://localhost:4200",
+                "https://ordenes.seminariosab.com.pe",
+                "https://ordenestest.seminariosab.com.pe"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
