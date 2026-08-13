@@ -9,6 +9,6 @@ namespace OrdenesOnline.Domain.entities
     public class CodeRepresentante
     {
         public int RepresentanteId { get; set; }
-        public string Cosabcli { get; set; }
+        public string Cosabcli { get; set; } = string.Empty;
     }
 }

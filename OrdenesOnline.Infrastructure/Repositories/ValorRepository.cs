@@ -1,38 +1,29 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
 using OrdenesOnline.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace OrdenesOnline.Infrastructure.Repositories
+namespace OrdenesOnline.Infrastructure.Repositories;
+
+public sealed class ValorRepository : IValorRepository
 {
-    public class ValorRepository : IValorRepository
+    private readonly OpersabDbContext _context;
+
+    public ValorRepository(OpersabDbContext context)
     {
-        private readonly OpersabDbContext _context;
-
-        public ValorRepository(OpersabDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<IEnumerable<Valor>> GetAllAsync()
-        {
-            var datos = await _context.Valores
-                        .AsNoTracking()
-                        .Where(v => v.Estado != "9")
-                        .Select(v => new Valor
-                        {
-                            Cosabval = v.Cosabval,
-                            Mnemo = v.Mnemo,
-                            Comon = v.Comon,
-                            Tival = v.Tival
-                        })
-                        .ToListAsync();
-
-            return datos;
-
-        }
+        _context = context;
     }
+
+    public async Task<IEnumerable<Valor>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _context.Valores
+            .AsNoTracking()
+            .Where(valor => valor.Estado != "9")
+            .Select(valor => new Valor
+            {
+                Cosabval = valor.Cosabval,
+                Mnemo = valor.Mnemo,
+                Comon = valor.Comon,
+                Tival = valor.Tival
+            })
+            .ToListAsync(cancellationToken);
 }

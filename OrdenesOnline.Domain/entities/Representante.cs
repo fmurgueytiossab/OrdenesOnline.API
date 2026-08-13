@@ -15,7 +15,7 @@ namespace OrdenesOnline.Domain.entities
         public string CorreoCorporativo { get; set; } = null!;
 
         public byte[] Password { get; set; } = null!;
-        public string Nombre { get; set; } = null!;        
+        public string Nombre { get; set; } = null!;
         public string Dni { get; set; } = null!;
 
     }

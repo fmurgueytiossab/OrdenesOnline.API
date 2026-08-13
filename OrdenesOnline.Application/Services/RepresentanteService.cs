@@ -1,38 +1,47 @@
-﻿using OrdenesOnline.Domain.DTO;
+using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
 
-namespace OrdenesOnline.Application.Services
+namespace OrdenesOnline.Application.Services;
+
+public sealed class RepresentanteService
 {
-    public class RepresentanteService
+    private readonly IRepresentanteRepository _repository;
+    private readonly TokenService _tokenService;
+
+    public RepresentanteService(IRepresentanteRepository repository, TokenService tokenService)
     {
-        private readonly IRepresentanteRepository _repo;
-        private readonly TokenService _tokenService;
+        _repository = repository;
+        _tokenService = tokenService;
+    }
 
-        public RepresentanteService(IRepresentanteRepository repo, TokenService tokenService)
+    public Task<IEnumerable<Representante>> GetAll(CancellationToken cancellationToken = default) =>
+        _repository.GetAllAsync(cancellationToken);
+
+    public Task<RepresentanteDTO?> GetById(int id, CancellationToken cancellationToken = default) =>
+        _repository.GetByIdAsync(id, cancellationToken);
+
+    public Task<Representante?> GetByEmail(string email, CancellationToken cancellationToken = default) =>
+        _repository.GetByEmail(email, cancellationToken);
+
+    public Task<PasswordValidationResult?> Login(
+        string correoCorporativo,
+        string password,
+        CancellationToken cancellationToken = default) =>
+        _repository.Login(correoCorporativo, password, cancellationToken);
+
+    public async Task<bool> UpdatePasswordByToken(
+        string token,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var correo = _tokenService.ValidatePasswordResetToken(token);
+
+        if (string.IsNullOrWhiteSpace(correo))
         {
-            _repo = repo;
-            _tokenService = tokenService;
+            return false;
         }
 
-        public Task<IEnumerable<Representante>> GetAll() => _repo.GetAllAsync();
-        public Task<RepresentanteDTO?> GetById(int id) => _repo.GetByIdAsync(id);
-
-        public Task<Representante?> GetByEmail(string email) => _repo.GetByEmail(email);
-        public Task Add(Representante c) => _repo.AddAsync(c);
-        public Task Update(Representante c) => _repo.UpdateAsync(c);
-        public Task Delete(int id) => _repo.DeleteAsync(id);
-        public Task<PasswordValidationResult?> Login(string correoCorporativo, string password) => _repo.Login(correoCorporativo,password);
-        public Task<bool> UpdatePassword(string correoCorporativo, string password) => _repo.UpdatePassword(correoCorporativo, password);
-
-        public async Task<bool> UpdatePasswordByToken(string token, string password)
-        {
-            var correo = _tokenService.ValidateToken(token);
-
-            if (string.IsNullOrWhiteSpace(correo))
-                return false;
-
-            return await _repo.UpdatePassword(correo, password);
-        }
+        return await _repository.UpdatePassword(correo, password, cancellationToken);
     }
 }

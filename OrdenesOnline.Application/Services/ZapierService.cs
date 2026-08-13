@@ -1,48 +1,57 @@
-﻿using Microsoft.Extensions.Configuration;
-using OrdenesOnline.Domain.DTO;
+using Microsoft.Extensions.Configuration;
 using OrdenesOnline.Domain.entities;
 using System.Net.Http.Json;
 
-namespace OrdenesOnline.Application.Services
+namespace OrdenesOnline.Application.Services;
+
+public sealed class ZapierService
 {
-    public class ZapierService
+    private readonly HttpClient _httpClient;
+    private readonly Uri _webhookUri;
+
+    public ZapierService(HttpClient httpClient, IConfiguration configuration)
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _zapierWebhookUrl;        
+        _httpClient = httpClient;
 
-        public ZapierService(HttpClient httpClient, IConfiguration configuration)
+        var webhookUrl = configuration["App:ZapierWebhookUrl"];
+        if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out var webhookUri))
         {
-            _httpClient = httpClient;
-            _zapierWebhookUrl = configuration["App:ZapierWebhookUrl"];
+            throw new InvalidOperationException("Falta una App:ZapierWebhookUrl válida.");
         }
 
-        public async Task EnviarPropuestaCreada(Propuesta propuesta, string dni, string moneda)
+        _webhookUri = webhookUri;
+    }
+
+    public async Task EnviarPropuestaCreada(
+        Propuesta propuesta,
+        string dni,
+        string moneda,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new
         {
-            var payload = new
-            {
-                propuestaId = propuesta.PropuestaId,
-                nombreOperador = propuesta.NombreOperador,
-                correo = propuesta.CorreoCorporativo,
-                cosabcli = propuesta.Cosabcli,
-                tipo = propuesta.Tipo,
-                cantidad = propuesta.Cantidad,
-                instrumento = propuesta.Instrumento,
-                tipoOrden = propuesta.TipoOrden,
-                precio = propuesta.TipoOrden == "Mercado" ? propuesta.TipoOrden : propuesta.Precio.ToString(),
-                mercado = propuesta.Mercado,
-                moneda = moneda, // 👈 aquí
-                fecha = DateTime.UtcNow,
-                monto = propuesta.TipoOrden == "Mercado" && propuesta.Cantidad > 0
-                        ? "No aplica" : propuesta.TipoOrden == "Mercado" && propuesta.Cantidad == 0
-                        ? propuesta.Monto.ToString()
-                        : propuesta.Monto.ToString(),
-                dni = dni,
-                vigencia = propuesta.Vigencia
-            };
+            propuestaId = propuesta.PropuestaId,
+            nombreOperador = propuesta.NombreOperador,
+            correo = propuesta.CorreoCorporativo,
+            cosabcli = propuesta.Cosabcli,
+            tipo = propuesta.Tipo,
+            cantidad = propuesta.Cantidad,
+            instrumento = propuesta.Instrumento,
+            tipoOrden = propuesta.TipoOrden,
+            precio = propuesta.TipoOrden.Equals("Mercado", StringComparison.OrdinalIgnoreCase)
+                ? propuesta.TipoOrden
+                : propuesta.Precio?.ToString(),
+            mercado = propuesta.Mercado,
+            moneda,
+            fecha = DateTime.UtcNow,
+            monto = propuesta.TipoOrden.Equals("Mercado", StringComparison.OrdinalIgnoreCase) && propuesta.Cantidad > 0
+                ? "No aplica"
+                : propuesta.Monto?.ToString(),
+            dni,
+            vigencia = propuesta.Vigencia
+        };
 
-            await _httpClient.PostAsJsonAsync(_zapierWebhookUrl, payload);
-
-        }
-
+        using var response = await _httpClient.PostAsJsonAsync(_webhookUri, payload, cancellationToken);
+        response.EnsureSuccessStatusCode();
     }
 }

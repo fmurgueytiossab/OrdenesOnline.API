@@ -1,6 +1,45 @@
-@OrdenesOnline_API_HostAddress = http://localhost:5177
+@host = https://localhost:7213
+@token = REEMPLAZAR_ACCESS_TOKEN
 
-GET {{OrdenesOnline_API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login
+POST {{host}}/api/Representante/login
+Content-Type: application/json
 
-###
+{
+  "correo": "representante@example.com",
+  "password": "REEMPLAZAR"
+}
+
+### Perfil autenticado
+GET {{host}}/api/Representante/me
+Authorization: Bearer {{token}}
+
+### Valores
+GET {{host}}/api/Valor
+Authorization: Bearer {{token}}
+
+### Solicitar recuperación de contraseña
+POST {{host}}/api/Email/send-validation
+Content-Type: application/json
+
+{
+  "email": "representante@example.com"
+}
+
+### Crear propuesta
+POST {{host}}/api/Propuesta
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cosabcli": "C001",
+  "tipo": "Compra",
+  "tipoOrden": "Mercado",
+  "cantidad": 10,
+  "instrumento": "ABC",
+  "precio": null,
+  "monto": null,
+  "mercado": "Local",
+  "moneda": "PEN",
+  "vigencia": "Día"
+}

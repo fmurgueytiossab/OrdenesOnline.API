@@ -14,7 +14,7 @@ namespace OrdenesOnline.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Valor>()
-                .ToTable("Valores");           
+                .ToTable("Valores");
         }
     }
 }

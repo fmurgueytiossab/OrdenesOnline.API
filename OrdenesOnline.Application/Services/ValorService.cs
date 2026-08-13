@@ -1,20 +1,17 @@
-﻿using OrdenesOnline.Domain.entities;
+using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace OrdenesOnline.Application.Services
+namespace OrdenesOnline.Application.Services;
+
+public sealed class ValorService
 {
-    public class ValorService
+    private readonly IValorRepository _repository;
+
+    public ValorService(IValorRepository repository)
     {
-        private readonly IValorRepository _repo;
-
-        public ValorService(IValorRepository repo)
-        {
-            _repo = repo;
-        }
-
-        public Task<IEnumerable<Valor>> GetAll() => _repo.GetAllAsync();
+        _repository = repository;
     }
+
+    public Task<IEnumerable<Valor>> GetAll(CancellationToken cancellationToken = default) =>
+        _repository.GetAllAsync(cancellationToken);
 }

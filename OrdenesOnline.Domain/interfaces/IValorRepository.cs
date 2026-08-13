@@ -1,9 +1,8 @@
-﻿using OrdenesOnline.Domain.entities;
+using OrdenesOnline.Domain.entities;
 
-namespace OrdenesOnline.Domain.interfaces
+namespace OrdenesOnline.Domain.interfaces;
+
+public interface IValorRepository
 {
-    public interface IValorRepository
-    {
-        Task<IEnumerable<Valor>> GetAllAsync();
-    }
+    Task<IEnumerable<Valor>> GetAllAsync(CancellationToken cancellationToken = default);
 }

@@ -1,20 +1,65 @@
-﻿namespace OrdenesOnline.Domain.DTO
+using System.ComponentModel.DataAnnotations;
+
+namespace OrdenesOnline.Domain.DTO;
+
+public sealed class PropuestaCreateRequest : IValidatableObject
 {
-    public class PropuestaCreateRequest
+    [Required, StringLength(30)]
+    public string Cosabcli { get; set; } = string.Empty;
+
+    [Required, StringLength(30)]
+    public string Tipo { get; set; } = string.Empty;
+
+    [Required, StringLength(30)]
+    public string TipoOrden { get; set; } = string.Empty;
+
+    [Range(0, int.MaxValue)]
+    public int Cantidad { get; set; }
+
+    [Required, StringLength(50)]
+    public string Instrumento { get; set; } = string.Empty;
+
+    public decimal? Precio { get; set; }
+
+    public decimal? Monto { get; set; }
+
+    [Required, StringLength(30)]
+    public string Mercado { get; set; } = string.Empty;
+
+    [Required, StringLength(10)]
+    public string Moneda { get; set; } = string.Empty;
+
+    [Required, StringLength(30)]
+    public string Vigencia { get; set; } = string.Empty;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        public string NombreOperador { get; set; }
-        public string CorreoCorporativo { get; set; }
-        public string Cosabcli { get; set; }
-        public string Tipo { get; set; }
-        public string TipoOrden { get; set; }
-        public int Cantidad { get; set; }
-        public string Instrumento { get; set; }
-        public decimal? Precio { get; set; } = null;
-        public decimal? Monto { get; set; }
-        public string Mercado { get; set; }
-        public string Moneda { get; set; }
-        public string Dni { get; set; }
-        public string Vigencia { get; set; }
-        public DateTime FechaRegistro  { get; set; }
+        if (Cantidad <= 0 && (!Monto.HasValue || Monto.Value <= 0))
+        {
+            yield return new ValidationResult(
+                "Debe indicar una cantidad o un monto mayor que cero.",
+                [nameof(Cantidad), nameof(Monto)]);
+        }
+
+        if (Precio.HasValue && Precio.Value <= 0)
+        {
+            yield return new ValidationResult(
+                "El precio debe ser mayor que cero.",
+                [nameof(Precio)]);
+        }
+
+        if (Monto.HasValue && Monto.Value <= 0)
+        {
+            yield return new ValidationResult(
+                "El monto debe ser mayor que cero.",
+                [nameof(Monto)]);
+        }
+
+        if (!string.Equals(TipoOrden, "Mercado", StringComparison.OrdinalIgnoreCase) && !Precio.HasValue)
+        {
+            yield return new ValidationResult(
+                "El precio es obligatorio cuando la orden no es a mercado.",
+                [nameof(Precio)]);
+        }
     }
 }

@@ -1,31 +1,53 @@
-﻿using Microsoft.Extensions.Configuration;
-using MimeKit;
 using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Configuration;
+using MimeKit;
 
-namespace OrdenesOnline.Application.Services
+namespace OrdenesOnline.Application.Services;
+
+public sealed class EmailService
 {
-    public class EmailService
+    private readonly string _from;
+    private readonly string _host;
+    private readonly int _port;
+    private readonly string _user;
+    private readonly string _password;
+
+    public EmailService(IConfiguration configuration)
     {
-        private readonly IConfiguration _config;
+        _from = GetRequiredSetting(configuration, "Email:From");
+        _host = GetRequiredSetting(configuration, "Email:Host");
+        _user = GetRequiredSetting(configuration, "Email:User");
+        _password = GetRequiredSetting(configuration, "Email:Pass");
+        _port = int.TryParse(configuration["Email:Port"], out var port) && port > 0
+            ? port
+            : 587;
+    }
 
-        public EmailService(IConfiguration config)
-        {
-            _config = config;
-        }
+    public async Task SendEmailAsync(
+        string to,
+        string subject,
+        string body,
+        CancellationToken cancellationToken = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("Órdenes Online", _from));
+        message.To.Add(MailboxAddress.Parse(to));
+        message.Subject = subject;
+        message.Body = new TextPart("html") { Text = body };
 
-        public async Task SendEmailAsync(string to, string subject, string body)
-        {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Mi App", _config["Email:From"]));
-            message.To.Add(new MailboxAddress("", to));
-            message.Subject = subject;
-            message.Body = new TextPart("html") { Text = body };
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(_host, _port, SecureSocketOptions.StartTls, cancellationToken);
+        await smtp.AuthenticateAsync(_user, _password, cancellationToken);
+        await smtp.SendAsync(message, cancellationToken);
+        await smtp.DisconnectAsync(true, cancellationToken);
+    }
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["Email:Host"], 587, MailKit.Security.SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["Email:User"], _config["Email:Pass"]);
-            await smtp.SendAsync(message);
-            await smtp.DisconnectAsync(true);
-        }
+    private static string GetRequiredSetting(IConfiguration configuration, string key)
+    {
+        var value = configuration[key];
+        return !string.IsNullOrWhiteSpace(value)
+            ? value
+            : throw new InvalidOperationException($"Falta la configuración obligatoria '{key}'.");
     }
 }
