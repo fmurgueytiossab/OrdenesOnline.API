@@ -139,6 +139,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
@@ -152,6 +154,8 @@ if (!app.Environment.IsProduction())
 }
 
 app.MapControllers();
+app.MapFallback("/api/{**path}", () => Results.NotFound());
+app.MapFallbackToFile("index.html");
 
 app.Run();
 
