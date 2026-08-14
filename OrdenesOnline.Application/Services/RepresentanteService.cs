@@ -7,12 +7,14 @@ namespace OrdenesOnline.Application.Services;
 public sealed class RepresentanteService
 {
     private readonly IRepresentanteRepository _repository;
-    private readonly TokenService _tokenService;
+    private readonly ActionTokenService _actionTokenService;
 
-    public RepresentanteService(IRepresentanteRepository repository, TokenService tokenService)
+    public RepresentanteService(
+        IRepresentanteRepository repository,
+        ActionTokenService actionTokenService)
     {
         _repository = repository;
-        _tokenService = tokenService;
+        _actionTokenService = actionTokenService;
     }
 
     public Task<IEnumerable<Representante>> GetAll(CancellationToken cancellationToken = default) =>
@@ -35,13 +37,26 @@ public sealed class RepresentanteService
         string password,
         CancellationToken cancellationToken = default)
     {
-        var correo = _tokenService.ValidatePasswordResetToken(token);
+        var storedToken = await _actionTokenService.ValidateAsync(
+            token,
+            ActionTokenService.PasswordResetType,
+            cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(correo))
+        if (storedToken is null ||
+            !await _actionTokenService.TryMarkUsedAsync(storedToken.TokenId, cancellationToken))
         {
             return false;
         }
 
-        return await _repository.UpdatePassword(correo, password, cancellationToken);
+        var representante = await _repository.GetByIdAsync(storedToken.UserId, cancellationToken);
+        if (representante is null)
+        {
+            return false;
+        }
+
+        return await _repository.UpdatePassword(
+            representante.CorreoCorporativo,
+            password,
+            cancellationToken);
     }
 }

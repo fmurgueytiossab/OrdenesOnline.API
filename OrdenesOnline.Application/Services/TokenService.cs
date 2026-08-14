@@ -10,20 +10,16 @@ public sealed class TokenService
 {
     private const string TokenUseClaim = "token_use";
     private const string AccessTokenUse = "access";
-    private const string PasswordResetTokenUse = "password_reset";
 
     private readonly string _issuer;
     private readonly string _accessAudience;
-    private readonly string _passwordResetAudience;
     private readonly SymmetricSecurityKey _signingKey;
     private readonly int _accessTokenMinutes;
-    private readonly int _passwordResetTokenMinutes;
 
     public TokenService(IConfiguration configuration)
     {
         _issuer = GetRequiredSetting(configuration, "Jwt:Issuer");
         _accessAudience = GetRequiredSetting(configuration, "Jwt:Audience");
-        _passwordResetAudience = GetRequiredSetting(configuration, "Jwt:PasswordResetAudience");
 
         var key = GetRequiredSetting(configuration, "Jwt:Key");
         if (Encoding.UTF8.GetByteCount(key) < 32)
@@ -33,49 +29,10 @@ public sealed class TokenService
 
         _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         _accessTokenMinutes = GetPositiveInt(configuration, "Jwt:AccessTokenMinutes", 30);
-        _passwordResetTokenMinutes = GetPositiveInt(configuration, "Jwt:PasswordResetTokenMinutes", 15);
     }
 
     public string GenerateAccessToken(string email, int userId) =>
         GenerateToken(email, userId, _accessAudience, AccessTokenUse, _accessTokenMinutes);
-
-    public string GeneratePasswordResetToken(string email, int userId) =>
-        GenerateToken(email, userId, _passwordResetAudience, PasswordResetTokenUse, _passwordResetTokenMinutes);
-
-    public string? ValidatePasswordResetToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return null;
-        }
-
-        var tokenHandler = new JwtSecurityTokenHandler
-        {
-            MapInboundClaims = false
-        };
-
-        try
-        {
-            var principal = tokenHandler.ValidateToken(token, CreateValidationParameters(_passwordResetAudience), out var validatedToken);
-
-            if (validatedToken is not JwtSecurityToken jwtToken ||
-                !string.Equals(jwtToken.Header.Alg, SecurityAlgorithms.HmacSha256, StringComparison.Ordinal) ||
-                !string.Equals(principal.FindFirst(TokenUseClaim)?.Value, PasswordResetTokenUse, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            return principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
-        }
-        catch (SecurityTokenException)
-        {
-            return null;
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-    }
 
     private string GenerateToken(string email, int userId, string audience, string tokenUse, int lifetimeMinutes)
     {
@@ -99,18 +56,6 @@ public sealed class TokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
-    private TokenValidationParameters CreateValidationParameters(string audience) => new()
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = _signingKey,
-        ValidateIssuer = true,
-        ValidIssuer = _issuer,
-        ValidateAudience = true,
-        ValidAudience = audience,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
 
     private static string GetRequiredSetting(IConfiguration configuration, string key)
     {

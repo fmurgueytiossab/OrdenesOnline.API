@@ -96,10 +96,24 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+
+    options.AddPolicy("proposal-review", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetClientPartition(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 builder.Services.AddScoped<IPropuestaRepository, PropuestaRepository>();
 builder.Services.AddScoped<PropuestaService>();
+builder.Services.AddScoped<PropuestaClienteService>();
+builder.Services.AddScoped<IActionTokenRepository, ActionTokenRepository>();
+builder.Services.AddScoped<ActionTokenService>();
 
 builder.Services.AddScoped<IRepresentanteRepository, RepresentanteRepository>();
 builder.Services.AddScoped<RepresentanteService>();
@@ -112,7 +126,7 @@ builder.Services.AddHttpClient<ZapierService>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<PasswordRecoveryService>();
 
 builder.Services.AddControllers();

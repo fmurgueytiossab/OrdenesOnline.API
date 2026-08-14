@@ -22,9 +22,14 @@ Las rutas públicas existentes se mantienen para no romper al frontend:
 - `POST /api/Email/send-validation`
 - `GET /api/Email/validate`
 - `POST /api/Propuesta`
+- `POST /api/PropuestaCliente`
+- `POST /api/PropuestaCliente/revision/validar`
+- `POST /api/PropuestaCliente/revision`
 - `GET /api/Valor`
 
 Los errores utilizan `ProblemDetails`. Login inválido devuelve `401`, validación incorrecta devuelve `400`, autorización insuficiente devuelve `403` y la creación de una propuesta devuelve `201`.
+
+`POST /api/PropuestaCliente` conserva la validación del representante y del código de cliente. Solo acepta `BVL`, `Canaccord Renta4` o `Pershing` en `mercado`; después de guardar, genera un token de revisión y envía al `correoCliente` un resumen de la operación con el enlace correspondiente. Este flujo no utiliza Zapier.
 
 ## Configuración local
 
@@ -47,6 +52,7 @@ Jwt__Key
 ConnectionStrings__DefaultConnection
 ConnectionStrings__Opersab
 App__ZapierWebhookUrl
+App__ClientesFrontendUrl
 Email__From
 Email__User
 Email__Pass
@@ -57,10 +63,16 @@ Las credenciales que estuvieron versionadas deben rotarse aunque ya no aparezcan
 ## Tokens
 
 - Los access tokens tienen audiencia `ClientesFrontend`, propósito `access` y duración configurable.
-- Los tokens de recuperación tienen audiencia `ClientesPasswordReset`, propósito `password_reset` y una duración menor.
-- Un token de recuperación no puede autenticar llamadas protegidas y un access token no puede cambiar una contraseña.
+- Los tokens de recuperación y revisión son valores aleatorios opacos. Solo su hash SHA-256 se guarda en `dbo.Token`.
+- `Type` separa los propósitos `password_reset` y `proposal_review`, por lo que un token no puede utilizarse en el otro flujo.
+- Los tokens expiran, pueden revocarse y solo pueden consumirse una vez.
+- El token de revisión relaciona internamente `UserId` y `PropuestaId`; esos identificadores no se incluyen en la URL.
 
-La recuperación continúa siendo stateless: hasta incorporar persistencia, un token de recuperación válido puede reutilizarse durante su vigencia.
+Los tiempos se configuran mediante `ActionTokens:PasswordResetMinutes` y `ActionTokens:ProposalReviewMinutes`. El cambio requerido en la base de datos está documentado en `Database/20260813_action_tokens_and_proposal_status.sql`.
+
+En el modelo actual, `Token.UserId` identifica al representante autenticado que creó la propuesta y referencia `UserRepresentante.RepresentanteId`. El cliente demuestra autorización mediante la posesión del enlace enviado a su correo. Si posteriormente los clientes tienen una cuenta autenticada propia, este campo debe relacionarse con el identificador real del cliente y el backend debe comparar esa identidad; esa comparación no debe delegarse al frontend.
+
+La página de revisión extrae el token de la URL y lo envía en el cuerpo de `POST /api/PropuestaCliente/revision/validar`. Para responder, envía el mismo token y `Aceptado` o `Cancelado` a `POST /api/PropuestaCliente/revision`. El backend cambia `propuesta.Estado` y consume el token en una sola transacción.
 
 ## Verificación
 

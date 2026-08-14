@@ -43,3 +43,39 @@ Content-Type: application/json
   "moneda": "PEN",
   "vigencia": "Día"
 }
+
+### Crear propuesta para cliente y enviarle el resumen por correo
+POST {{host}}/api/PropuestaCliente
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "correoCliente": "cliente@example.com",
+  "cosabcli": "C001",
+  "tipo": "Compra",
+  "tipoOrden": "Mercado",
+  "cantidad": 10,
+  "instrumento": "ABC",
+  "precio": null,
+  "monto": null,
+  "mercado": "BVL",
+  "moneda": "PEN",
+  "vigencia": "Día"
+}
+
+### Validar token y obtener el resumen para revisión
+POST {{host}}/api/PropuestaCliente/revision/validar
+Content-Type: application/json
+
+{
+  "token": "REEMPLAZAR_TOKEN_REVISION"
+}
+
+### Aceptar o cancelar una propuesta (el token se consume)
+POST {{host}}/api/PropuestaCliente/revision
+Content-Type: application/json
+
+{
+  "token": "REEMPLAZAR_TOKEN_REVISION",
+  "estado": "Aceptado"
+}

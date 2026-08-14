@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
@@ -23,8 +24,17 @@ namespace OrdenesOnline.Domain.entities
         public decimal? Precio { get; set; }
         public string Vigencia { get; set; } = null!;
         public string Mercado { get; set; } = null!;
+        [StringLength(20)]
+        public string Estado { get; set; } = PropuestaEstados.Pendiente;
         [Column("Fecha_Registro")]
         public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
+    }
+
+    public static class PropuestaEstados
+    {
+        public const string Pendiente = "Pendiente";
+        public const string Aceptado = "Aceptado";
+        public const string Cancelado = "Cancelado";
     }
 }

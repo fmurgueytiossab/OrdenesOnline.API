@@ -40,9 +40,13 @@ public sealed class EmailController : ControllerBase
     [HttpGet("validate")]
     [ProducesResponseType<PasswordResetValidationResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    public ActionResult<PasswordResetValidationResponse> ValidateEmail([FromQuery] string token)
+    public async Task<ActionResult<PasswordResetValidationResponse>> ValidateEmail(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
     {
-        var email = _passwordRecoveryService.ValidatePasswordResetToken(token);
+        var email = await _passwordRecoveryService.ValidatePasswordResetToken(
+            token,
+            cancellationToken);
         if (email is null)
         {
             return Problem(

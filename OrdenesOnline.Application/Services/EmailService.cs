@@ -5,7 +5,7 @@ using MimeKit;
 
 namespace OrdenesOnline.Application.Services;
 
-public sealed class EmailService
+public sealed class EmailService : IEmailService
 {
     private readonly string _from;
     private readonly string _host;

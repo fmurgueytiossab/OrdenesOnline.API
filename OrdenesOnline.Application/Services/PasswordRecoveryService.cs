@@ -7,20 +7,20 @@ namespace OrdenesOnline.Application.Services;
 public sealed class PasswordRecoveryService
 {
     private readonly RepresentanteService _representanteService;
-    private readonly TokenService _tokenService;
-    private readonly EmailService _emailService;
+    private readonly ActionTokenService _actionTokenService;
+    private readonly IEmailService _emailService;
     private readonly ILogger<PasswordRecoveryService> _logger;
     private readonly string _frontendUrl;
 
     public PasswordRecoveryService(
         RepresentanteService representanteService,
-        TokenService tokenService,
-        EmailService emailService,
+        ActionTokenService actionTokenService,
+        IEmailService emailService,
         ILogger<PasswordRecoveryService> logger,
         IConfiguration configuration)
     {
         _representanteService = representanteService;
-        _tokenService = tokenService;
+        _actionTokenService = actionTokenService;
         _emailService = emailService;
         _logger = logger;
         _frontendUrl = configuration["App:FrontendUrl"]?.TrimEnd('/')
@@ -42,8 +42,10 @@ public sealed class PasswordRecoveryService
             return;
         }
 
-        var token = _tokenService.GeneratePasswordResetToken(email, representante.RepresentanteId);
-        var link = $"{_frontendUrl}/change-password?token={Uri.EscapeDataString(token)}";
+        var token = await _actionTokenService.CreatePasswordResetTokenAsync(
+            representante.RepresentanteId,
+            cancellationToken);
+        var link = $"{_frontendUrl}/change-password?token={Uri.EscapeDataString(token.Value)}";
         var safeLink = WebUtility.HtmlEncode(link);
         var html = $"""
             <p>Para obtener una nueva contraseña, abra el siguiente enlace:</p>
@@ -67,6 +69,24 @@ public sealed class PasswordRecoveryService
         }
     }
 
-    public string? ValidatePasswordResetToken(string token) =>
-        _tokenService.ValidatePasswordResetToken(token);
+    public async Task<string?> ValidatePasswordResetToken(
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        var storedToken = await _actionTokenService.ValidateAsync(
+            token,
+            ActionTokenService.PasswordResetType,
+            cancellationToken);
+
+        if (storedToken is null)
+        {
+            return null;
+        }
+
+        var representante = await _representanteService.GetById(
+            storedToken.UserId,
+            cancellationToken);
+
+        return representante?.CorreoCorporativo;
+    }
 }
