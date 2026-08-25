@@ -121,6 +121,9 @@ builder.Services.AddScoped<RepresentanteService>();
 builder.Services.AddScoped<IValorRepository, ValorRepository>();
 builder.Services.AddScoped<ValorService>();
 
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<ClienteService>();
+
 builder.Services.AddHttpClient<ZapierService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(10);
