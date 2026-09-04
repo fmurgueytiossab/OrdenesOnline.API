@@ -35,7 +35,7 @@ public sealed class PropuestaBvlSeguimientoService
                 PropuestaBvlSeguimientoStatus.RepresentanteNotFound);
         }
 
-        var operacionesPorClave = snapshot.Operaciones
+        var operacionesBvlPorClave = snapshot.Operaciones
             .GroupBy(CreateMatchKey)
             .ToDictionary(
                 group => group.Key,
@@ -43,45 +43,98 @@ public sealed class PropuestaBvlSeguimientoService
                     .OrderByDescending(item => item.FechaPropuesta)
                     .ThenByDescending(item => item.HoraPropuesta)
                     .ThenByDescending(item => item.NumeroPropuesta, StringComparer.OrdinalIgnoreCase)));
+        var operacionesExteriorPorClave = snapshot.OperacionesExterior
+            .GroupBy(CreateExternalMatchKey)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(item => item.NumeroOperacion, StringComparer.OrdinalIgnoreCase)
+                    .ToList());
 
         var items = new List<PropuestaBvlSeguimientoItem>();
 
         foreach (var propuesta in snapshot.Propuestas.OrderByDescending(item => item.FechaRegistro))
         {
-            if (!operacionesPorClave.TryGetValue(CreateMatchKey(propuesta), out var coincidencias) ||
-                coincidencias.Count == 0)
+            var channel = GetChannel(propuesta.Mercado);
+            if (channel == "BVL")
+            {
+                if (!operacionesBvlPorClave.TryGetValue(CreateMatchKey(propuesta), out var coincidencias) ||
+                    coincidencias.Count == 0)
+                {
+                    continue;
+                }
+
+                var operacion = coincidencias.Dequeue();
+                var cantidadPendiente = Math.Max(
+                    operacion.CantidadPropuesta -
+                    operacion.CantidadEjecutada -
+                    operacion.CantidadAnulada,
+                    0m);
+
+                items.Add(new PropuestaBvlSeguimientoItem(
+                    propuesta.PropuestaId,
+                    operacion.Cosabcli.Trim(),
+                    operacion.FechaPropuesta,
+                    operacion.HoraPropuesta,
+                    operacion.NumeroPropuesta.Trim(),
+                    operacion.Instrumento.Trim(),
+                    NormalizeTradeSide(operacion.Tipo),
+                    operacion.CantidadPropuesta,
+                    operacion.CantidadEjecutada,
+                    operacion.CantidadAnulada,
+                    cantidadPendiente,
+                    operacion.Precio,
+                    GetStatus(operacion),
+                    channel));
+                continue;
+            }
+
+            if (channel is not ("CANACCORD" or "VIEWTRADE") &&
+                !string.Equals(NormalizeMarket(propuesta.Mercado), "EXTRANJERO", StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var operacion = coincidencias.Dequeue();
-            var cantidadPendiente = Math.Max(
-                operacion.CantidadPropuesta -
-                operacion.CantidadEjecutada -
-                operacion.CantidadAnulada,
-                0m);
+            if (!operacionesExteriorPorClave.TryGetValue(
+                    CreateExternalMatchKey(propuesta),
+                    out var coincidenciasExterior))
+            {
+                continue;
+            }
+
+            var matchIndex = coincidenciasExterior.FindIndex(operacion =>
+                (channel is null || GetChannel(operacion.BrokerCode) == channel) &&
+                (!propuesta.Precio.HasValue || operacion.Precio == propuesta.Precio));
+            if (matchIndex < 0)
+            {
+                continue;
+            }
+
+            var operacionExterior = coincidenciasExterior[matchIndex];
+            coincidenciasExterior.RemoveAt(matchIndex);
+            var externalChannel = GetChannel(operacionExterior.BrokerCode)!;
 
             items.Add(new PropuestaBvlSeguimientoItem(
                 propuesta.PropuestaId,
-                operacion.Cosabcli.Trim(),
-                operacion.FechaPropuesta,
-                operacion.HoraPropuesta,
-                operacion.NumeroPropuesta.Trim(),
-                operacion.Instrumento.Trim(),
-                NormalizeTradeSide(operacion.Tipo),
-                operacion.CantidadPropuesta,
-                operacion.CantidadEjecutada,
-                operacion.CantidadAnulada,
-                cantidadPendiente,
-                operacion.Precio,
-                GetStatus(operacion),
-                "BVL"));
+                operacionExterior.Cosabcli.Trim(),
+                operacionExterior.FechaOperacion,
+                null,
+                operacionExterior.NumeroOperacion.Trim(),
+                operacionExterior.Instrumento.Trim(),
+                NormalizeTradeSide(operacionExterior.Tipo),
+                operacionExterior.Cantidad,
+                0m,
+                0m,
+                operacionExterior.Cantidad,
+                operacionExterior.Precio,
+                PropuestaBvlEstados.Pendiente,
+                externalChannel));
         }
 
         var orderedItems = items
             .OrderByDescending(item => item.FechaPropuesta)
             .ThenByDescending(item => item.HoraPropuesta)
-            .ThenByDescending(item => item.NumeroPropuestaBvl, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(item => item.NumeroOperacion, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var totalCount = orderedItems.Count;
         var requestedOffset = (long)(page - 1) * pageSize;
@@ -141,6 +194,20 @@ public sealed class PropuestaBvlSeguimientoService
         operacion.Precio,
         operacion.FechaPropuesta);
 
+    private static ExternalMatchKey CreateExternalMatchKey(Propuesta propuesta) => new(
+        Normalize(propuesta.Cosabcli),
+        NormalizeTradeSide(propuesta.Tipo),
+        Normalize(propuesta.Instrumento),
+        propuesta.Cantidad,
+        DateOnly.FromDateTime(propuesta.FechaRegistro));
+
+    private static ExternalMatchKey CreateExternalMatchKey(OperacionExterior operacion) => new(
+        Normalize(operacion.Cosabcli),
+        NormalizeTradeSide(operacion.Tipo),
+        Normalize(operacion.Instrumento),
+        operacion.Cantidad,
+        operacion.FechaOperacion);
+
     private static string Normalize(string? value) =>
         value?.Trim().ToUpperInvariant() ?? string.Empty;
 
@@ -155,12 +222,31 @@ public sealed class PropuestaBvlSeguimientoService
         };
     }
 
+    private static string NormalizeMarket(string? value) =>
+        new(Normalize(value).Where(char.IsLetterOrDigit).ToArray());
+
+    private static string? GetChannel(string? marketOrBrokerCode) =>
+        NormalizeMarket(marketOrBrokerCode) switch
+        {
+            "BVL" => "BVL",
+            "57" or "CANACCORD" or "CANACCORDRENTA4" => "CANACCORD",
+            "66" or "VIEWTRADE" or "PERSHING" => "VIEWTRADE",
+            _ => null
+        };
+
     private readonly record struct PropuestaMatchKey(
         string Cosabcli,
         string Tipo,
         string Instrumento,
         decimal Cantidad,
         decimal? Precio,
+        DateOnly Fecha);
+
+    private readonly record struct ExternalMatchKey(
+        string Cosabcli,
+        string Tipo,
+        string Instrumento,
+        decimal Cantidad,
         DateOnly Fecha);
 }
 

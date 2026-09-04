@@ -24,6 +24,7 @@ public sealed class PropuestaClienteController : ControllerBase
         _seguimientoService = seguimientoService;
     }
 
+    [HttpGet("seguimiento")]
     [HttpGet("seguimiento/bvl")]
     [ProducesResponseType<PropuestaBvlSeguimientoPage>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

@@ -25,7 +25,7 @@ public sealed class PropuestaBvlSeguimientoServiceTests
         Assert.Equal(PropuestaBvlSeguimientoStatus.Success, result.Status);
         var item = Assert.Single(result.Page!.Items);
         Assert.Equal(41, item.CodigoOrden);
-        Assert.Equal("9001", item.NumeroPropuestaBvl);
+        Assert.Equal("9001", item.NumeroOperacion);
         Assert.Equal("C", item.Tipo);
         Assert.Equal("EJECUTADA", item.Estado);
         Assert.Equal(0, item.CantidadPendiente);
@@ -121,11 +121,66 @@ public sealed class PropuestaBvlSeguimientoServiceTests
         Assert.Equal(1, result.Page.TotalCount);
     }
 
+    [Theory]
+    [InlineData("Canaccord Renta4", "57", "CANACCORD")]
+    [InlineData("Viewtrade", "66", "VIEWTRADE")]
+    public async Task Get_MatchesExternalProposalAndMapsBrokerChannel(
+        string mercado,
+        string brokerCode,
+        string expectedChannel)
+    {
+        var propuesta = CreatePropuesta(47, "C001", "Venta", 4000, "CPAC", null, mercado);
+        var operacion = CreateOperacionExterior(
+            brokerCode,
+            "EXT-1001",
+            "C001",
+            "V",
+            4000,
+            "CPAC",
+            18.25m);
+        var service = CreateService([propuesta], [], [operacion]);
+
+        var result = await service.Get(7, 1, 20);
+
+        var item = Assert.Single(result.Page!.Items);
+        Assert.Equal(47, item.CodigoOrden);
+        Assert.Equal("EXT-1001", item.NumeroOperacion);
+        Assert.Equal(expectedChannel, item.Mercado);
+        Assert.Equal("PENDIENTE", item.Estado);
+        Assert.Equal(4000, item.CantidadPendiente);
+    }
+
+    [Fact]
+    public async Task Get_DoesNotMatchAnExternalProposalWithAnotherBroker()
+    {
+        var propuesta = CreatePropuesta(
+            48,
+            "C001",
+            "Compra",
+            100,
+            "ABC",
+            10m,
+            "Canaccord");
+        var viewtradeOperation = CreateOperacionExterior(
+            "66",
+            "EXT-1002",
+            "C001",
+            "C",
+            100,
+            "ABC",
+            10m);
+        var service = CreateService([propuesta], [], [viewtradeOperation]);
+
+        var result = await service.Get(7, 1, 20);
+
+        Assert.Empty(result.Page!.Items);
+    }
+
     [Fact]
     public async Task Get_WhenRepresentativeDoesNotExist_ReturnsNotFoundStatus()
     {
         var service = new PropuestaBvlSeguimientoService(
-            new FakeRepository(new PropuestaBvlSeguimientoSnapshot(false, [], [])));
+            new FakeRepository(new PropuestaBvlSeguimientoSnapshot(false, [], [], [])));
 
         var result = await service.Get(999, 1, 20);
 
@@ -148,11 +203,13 @@ public sealed class PropuestaBvlSeguimientoServiceTests
 
     private static PropuestaBvlSeguimientoService CreateService(
         IReadOnlyList<Propuesta> propuestas,
-        IReadOnlyList<OperacionBvl> operaciones) =>
+        IReadOnlyList<OperacionBvl> operaciones,
+        IReadOnlyList<OperacionExterior>? operacionesExterior = null) =>
         new(new FakeRepository(new PropuestaBvlSeguimientoSnapshot(
             true,
             propuestas,
-            operaciones)));
+            operaciones,
+            operacionesExterior ?? [])));
 
     private static Propuesta CreatePropuesta(
         int id,
@@ -160,7 +217,8 @@ public sealed class PropuestaBvlSeguimientoServiceTests
         string tipo,
         int cantidad,
         string instrumento,
-        decimal precio) => new()
+        decimal? precio,
+        string mercado = "BVL") => new()
     {
         PropuestaId = id,
         NombreOperador = "Representante",
@@ -172,7 +230,7 @@ public sealed class PropuestaBvlSeguimientoServiceTests
         Instrumento = instrumento,
         Precio = precio,
         Vigencia = "Día",
-        Mercado = "BVL",
+        Mercado = mercado,
         FechaRegistro = new DateTime(2026, 9, 4, 10, 0, 0, DateTimeKind.Utc)
     };
 
@@ -194,6 +252,23 @@ public sealed class PropuestaBvlSeguimientoServiceTests
         tipo,
         cantidad,
         precio);
+
+    private static OperacionExterior CreateOperacionExterior(
+        string brokerCode,
+        string numeroOperacion,
+        string cosabcli,
+        string tipo,
+        decimal cantidad,
+        string instrumento,
+        decimal? precio) => new(
+        brokerCode,
+        numeroOperacion,
+        new DateOnly(2026, 9, 4),
+        instrumento,
+        tipo,
+        cantidad,
+        precio,
+        cosabcli);
 
     private sealed class FakeRepository : IPropuestaBvlSeguimientoRepository
     {

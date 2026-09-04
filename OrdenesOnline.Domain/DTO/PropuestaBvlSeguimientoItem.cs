@@ -5,7 +5,7 @@ public sealed record PropuestaBvlSeguimientoItem(
     string Cosabcli,
     DateOnly FechaPropuesta,
     TimeOnly? HoraPropuesta,
-    string NumeroPropuestaBvl,
+    string NumeroOperacion,
     string Instrumento,
     string Tipo,
     decimal CantidadPropuesta,

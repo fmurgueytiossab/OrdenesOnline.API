@@ -11,6 +11,8 @@ namespace OrdenesOnline.Infrastructure.Repositories;
 public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimientoRepository
 {
     private const int ClientCodeBatchSize = 500;
+    private static readonly string[] SupportedMarkets =
+        ["BVL", "Canaccord", "Canaccord Renta4", "Viewtrade", "ViewTrade", "Pershing", "Extranjero"];
     private readonly AppDbContext _appContext;
     private readonly OpersabDbContext _opersabContext;
     private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
@@ -35,12 +37,12 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
 
         if (!clientScope.RepresentanteExiste)
         {
-            return new PropuestaBvlSeguimientoSnapshot(false, [], []);
+            return new PropuestaBvlSeguimientoSnapshot(false, [], [], []);
         }
 
         if (clientScope.Cosabcli.Count == 0)
         {
-            return new PropuestaBvlSeguimientoSnapshot(true, [], []);
+            return new PropuestaBvlSeguimientoSnapshot(true, [], [], []);
         }
 
         var fechaInicio = DateTime.Today;
@@ -51,7 +53,7 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
             var batchPropuestas = await _appContext.Propuestas
                 .AsNoTracking()
                 .Where(propuesta =>
-                    propuesta.Mercado == "BVL" &&
+                    SupportedMarkets.Contains(propuesta.Mercado) &&
                     propuesta.FechaRegistro >= fechaInicio &&
                     propuesta.FechaRegistro < fechaFin &&
                     clientCodeBatch.Contains(propuesta.Cosabcli))
@@ -67,11 +69,85 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
             clientScope.Cosabcli,
             DateOnly.FromDateTime(fechaInicio),
             cancellationToken);
+        var operacionesExterior = await GetOperacionesExteriorAsync(
+            clientScope.Cosabcli,
+            DateOnly.FromDateTime(fechaInicio),
+            cancellationToken);
 
         return new PropuestaBvlSeguimientoSnapshot(
             true,
             propuestas.Values.ToList(),
-            operaciones);
+            operaciones,
+            operacionesExterior);
+    }
+
+    private async Task<IReadOnlyList<OperacionExterior>> GetOperacionesExteriorAsync(
+        IReadOnlyList<string> clientCodes,
+        DateOnly fecha,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<OperacionExterior>();
+        var connection = _opersabContext.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            foreach (var clientCodeBatch in clientCodes.Chunk(ClientCodeBatchSize))
+            {
+                await using var command = connection.CreateCommand();
+                var parameterNames = AddClientCodeParameters(command, clientCodeBatch);
+
+                AddParameter(command, "@fecha", DbType.Date, fecha.ToDateTime(TimeOnly.MinValue));
+                AddParameter(command, "@canaccord", DbType.String, "57");
+                AddParameter(command, "@viewtrade", DbType.String, "66");
+
+                command.CommandText = $$"""
+                    SELECT
+                        overseas.comer AS BrokerCode,
+                        overseas.nuope_txt AS NumeroOperacion,
+                        overseas.fchope AS FechaOperacion,
+                        valores.mnemo AS Instrumento,
+                        overseas.fg_cv AS Tipo,
+                        overseas.qtacc AS Cantidad,
+                        overseas.provs AS Precio,
+                        overseas.cosabcli AS Cosabcli
+                    FROM overseas
+                    JOIN valores
+                        ON valores.cosabval = overseas.cosabval
+                    JOIN overseas_cms
+                        ON overseas.comer = overseas_cms.comer
+                    JOIN parini
+                        ON overseas.cia = parini.cia
+                    WHERE overseas.fchope = @fecha
+                      AND overseas.comer IN (@canaccord, @viewtrade)
+                      AND overseas.cosabcli IN ({{string.Join(", ", parameterNames)}})
+                    ORDER BY
+                        overseas.fg_cv ASC,
+                        overseas.nuope_txt ASC,
+                        overseas.nuseq ASC;
+                    """;
+
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    result.Add(ReadOperacionExterior(reader));
+                }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        return result;
     }
 
     private async Task<IReadOnlyList<OperacionBvl>> GetOperacionesAsync(
@@ -93,23 +169,8 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
             foreach (var clientCodeBatch in clientCodes.Chunk(ClientCodeBatchSize))
             {
                 await using var command = connection.CreateCommand();
-                var parameterNames = new List<string>(clientCodeBatch.Length);
-
-                for (var index = 0; index < clientCodeBatch.Length; index++)
-                {
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = $"@cosabcli{index}";
-                    parameter.DbType = DbType.String;
-                    parameter.Value = clientCodeBatch[index];
-                    command.Parameters.Add(parameter);
-                    parameterNames.Add(parameter.ParameterName);
-                }
-
-                var fechaParameter = command.CreateParameter();
-                fechaParameter.ParameterName = "@fecha";
-                fechaParameter.DbType = DbType.Date;
-                fechaParameter.Value = fecha.ToDateTime(TimeOnly.MinValue);
-                command.Parameters.Add(fechaParameter);
+                var parameterNames = AddClientCodeParameters(command, clientCodeBatch);
+                AddParameter(command, "@fecha", DbType.Date, fecha.ToDateTime(TimeOnly.MinValue));
 
                 command.CommandText = $$"""
                     SELECT DISTINCT
@@ -156,6 +217,34 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
         return result;
     }
 
+    private static IReadOnlyList<string> AddClientCodeParameters(
+        DbCommand command,
+        IReadOnlyList<string> clientCodes)
+    {
+        var parameterNames = new List<string>(clientCodes.Count);
+        for (var index = 0; index < clientCodes.Count; index++)
+        {
+            var parameterName = $"@cosabcli{index}";
+            AddParameter(command, parameterName, DbType.String, clientCodes[index]);
+            parameterNames.Add(parameterName);
+        }
+
+        return parameterNames;
+    }
+
+    private static void AddParameter(
+        DbCommand command,
+        string name,
+        DbType type,
+        object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.DbType = type;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
     private static OperacionBvl ReadOperacion(DbDataReader reader) => new(
         ReadString(reader, "Cosabcli"),
         ReadDate(reader, "FechaPropuesta"),
@@ -167,6 +256,16 @@ public sealed class PropuestaBvlSeguimientoRepository : IPropuestaBvlSeguimiento
         ReadString(reader, "Tipo"),
         ReadDecimal(reader, "CantidadPropuesta"),
         ReadNullableDecimal(reader, "Precio"));
+
+    private static OperacionExterior ReadOperacionExterior(DbDataReader reader) => new(
+        ReadString(reader, "BrokerCode"),
+        ReadString(reader, "NumeroOperacion"),
+        ReadDate(reader, "FechaOperacion"),
+        ReadString(reader, "Instrumento"),
+        ReadString(reader, "Tipo"),
+        ReadDecimal(reader, "Cantidad"),
+        ReadNullableDecimal(reader, "Precio"),
+        ReadString(reader, "Cosabcli"));
 
     private static object? ReadValue(DbDataReader reader, string columnName)
     {
