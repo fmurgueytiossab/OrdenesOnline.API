@@ -19,11 +19,15 @@ public sealed class ClienteRepository : IClienteRepository
     public async Task<IReadOnlyList<ClienteSearchResult>> SearchAsync(
         string search,
         int take,
+        IReadOnlyList<string> gestores,
         CancellationToken cancellationToken = default)
     {
         var query = _context.Clientes
             .AsNoTracking()
-            .Where(cliente => cliente.Estado != "9");
+            .Where(cliente =>
+                cliente.Estado != "9" &&
+                cliente.Gestor != null &&
+                gestores.Contains(cliente.Gestor));
 
         var terms = search.Split(
             ' ',

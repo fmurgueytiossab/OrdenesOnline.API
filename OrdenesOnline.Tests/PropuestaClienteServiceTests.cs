@@ -65,6 +65,26 @@ public sealed class PropuestaClienteServiceTests
     }
 
     [Fact]
+    public async Task Create_WhenClientBelongsToResolvedManager_SavesProposal()
+    {
+        var propuestaRepository = new FakePropuestaRepository();
+        var emailService = new FakeEmailService();
+        var clientScopeRepository = new FakeRepresentanteClientScopeRepository(
+            clientCodes: ["C001", "C002"]);
+        var service = CreateService(
+            propuestaRepository,
+            emailService,
+            clientScopeRepository: clientScopeRepository);
+        var request = CreateRequest("BVL");
+        request.Cosabcli = "C002";
+
+        var result = await service.Create(7, request);
+
+        Assert.Equal(CreatePropuestaClienteStatus.Created, result.Status);
+        Assert.Equal("C002", propuestaRepository.SavedProposal?.Cosabcli);
+    }
+
+    [Fact]
     public async Task Create_WhenMarketIsNotSupported_DoesNotSaveOrSendEmail()
     {
         var propuestaRepository = new FakePropuestaRepository();
@@ -116,7 +136,8 @@ public sealed class PropuestaClienteServiceTests
     private static PropuestaClienteService CreateService(
         IPropuestaRepository propuestaRepository,
         IEmailService emailService,
-        FakeActionTokenRepository? tokenRepository = null)
+        FakeActionTokenRepository? tokenRepository = null,
+        IRepresentanteClientScopeRepository? clientScopeRepository = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -132,6 +153,7 @@ public sealed class PropuestaClienteServiceTests
         return new PropuestaClienteService(
             propuestaRepository,
             new FakeRepresentanteRepository(),
+            clientScopeRepository ?? new FakeRepresentanteClientScopeRepository(),
             emailService,
             actionTokenService,
             NullLogger<PropuestaClienteService>.Instance,

@@ -4,6 +4,7 @@ using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
+using OrdenesOnline.Tests.TestDoubles;
 using System.Net;
 
 namespace OrdenesOnline.Tests;
@@ -63,6 +64,7 @@ public sealed class PropuestaServiceTests
         return new PropuestaService(
             propuestaRepository,
             representanteRepository,
+            new FakeRepresentanteClientScopeRepository(),
             zapierService,
             NullLogger<PropuestaService>.Instance);
     }

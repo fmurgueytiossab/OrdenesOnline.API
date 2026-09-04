@@ -112,11 +112,14 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IPropuestaRepository, PropuestaRepository>();
 builder.Services.AddScoped<PropuestaService>();
 builder.Services.AddScoped<PropuestaClienteService>();
+builder.Services.AddScoped<IPropuestaBvlSeguimientoRepository, PropuestaBvlSeguimientoRepository>();
+builder.Services.AddScoped<PropuestaBvlSeguimientoService>();
 builder.Services.AddScoped<IActionTokenRepository, ActionTokenRepository>();
 builder.Services.AddScoped<ActionTokenService>();
 
 builder.Services.AddScoped<IRepresentanteRepository, RepresentanteRepository>();
 builder.Services.AddScoped<RepresentanteService>();
+builder.Services.AddScoped<IRepresentanteClientScopeRepository, RepresentanteClientScopeRepository>();
 
 builder.Services.AddScoped<IValorRepository, ValorRepository>();
 builder.Services.AddScoped<ValorService>();

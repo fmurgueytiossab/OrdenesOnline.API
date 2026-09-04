@@ -14,10 +14,50 @@ namespace OrdenesOnline_API.Features.Propuestas;
 public sealed class PropuestaClienteController : ControllerBase
 {
     private readonly PropuestaClienteService _service;
+    private readonly PropuestaBvlSeguimientoService _seguimientoService;
 
-    public PropuestaClienteController(PropuestaClienteService service)
+    public PropuestaClienteController(
+        PropuestaClienteService service,
+        PropuestaBvlSeguimientoService seguimientoService)
     {
         _service = service;
+        _seguimientoService = seguimientoService;
+    }
+
+    [HttpGet("seguimiento/bvl")]
+    [ProducesResponseType<PropuestaBvlSeguimientoPage>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PropuestaBvlSeguimientoPage>> GetBvlTracking(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = PropuestaBvlSeguimientoService.DefaultPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var subject = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (!int.TryParse(subject, out var representanteId))
+        {
+            return Problem(
+                title: "La identidad autenticada no contiene un usuario válido.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var result = await _seguimientoService.Get(
+            representanteId,
+            page,
+            pageSize,
+            cancellationToken);
+
+        return result.Status switch
+        {
+            PropuestaBvlSeguimientoStatus.InvalidPagination => Problem(
+                title: "La paginación indicada no es válida.",
+                detail: $"La página debe ser mayor que cero y pageSize debe estar entre 1 y {PropuestaBvlSeguimientoService.MaximumPageSize}.",
+                statusCode: StatusCodes.Status400BadRequest),
+            PropuestaBvlSeguimientoStatus.RepresentanteNotFound => Problem(
+                title: "El usuario autenticado ya no existe.",
+                statusCode: StatusCodes.Status401Unauthorized),
+            _ => Ok(result.Page)
+        };
     }
 
     [HttpPost]

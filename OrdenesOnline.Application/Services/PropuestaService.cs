@@ -9,17 +9,20 @@ public sealed class PropuestaService
 {
     private readonly IPropuestaRepository _propuestaRepository;
     private readonly IRepresentanteRepository _representanteRepository;
+    private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
     private readonly ZapierService _zapierService;
     private readonly ILogger<PropuestaService> _logger;
 
     public PropuestaService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
+        IRepresentanteClientScopeRepository clientScopeRepository,
         ZapierService zapierService,
         ILogger<PropuestaService> logger)
     {
         _propuestaRepository = propuestaRepository;
         _representanteRepository = representanteRepository;
+        _clientScopeRepository = clientScopeRepository;
         _zapierService = zapierService;
         _logger = logger;
     }
@@ -36,7 +39,15 @@ public sealed class PropuestaService
             return new CreatePropuestaResult(CreatePropuestaStatus.RepresentanteNotFound);
         }
 
-        if (!representante.Cosabcli.Contains(request.Cosabcli, StringComparer.OrdinalIgnoreCase))
+        var clientScope = await _clientScopeRepository.GetAsync(
+            representanteId,
+            cancellationToken);
+        if (!clientScope.RepresentanteExiste)
+        {
+            return new CreatePropuestaResult(CreatePropuestaStatus.RepresentanteNotFound);
+        }
+
+        if (!clientScope.Cosabcli.Contains(request.Cosabcli.Trim(), StringComparer.OrdinalIgnoreCase))
         {
             return new CreatePropuestaResult(CreatePropuestaStatus.CosabcliForbidden);
         }

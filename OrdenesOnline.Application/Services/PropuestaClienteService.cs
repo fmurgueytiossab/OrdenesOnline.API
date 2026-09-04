@@ -12,6 +12,7 @@ public sealed class PropuestaClienteService
 {
     private readonly IPropuestaRepository _propuestaRepository;
     private readonly IRepresentanteRepository _representanteRepository;
+    private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
     private readonly IEmailService _emailService;
     private readonly ActionTokenService _actionTokenService;
     private readonly ILogger<PropuestaClienteService> _logger;
@@ -20,6 +21,7 @@ public sealed class PropuestaClienteService
     public PropuestaClienteService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
+        IRepresentanteClientScopeRepository clientScopeRepository,
         IEmailService emailService,
         ActionTokenService actionTokenService,
         ILogger<PropuestaClienteService> logger,
@@ -27,6 +29,7 @@ public sealed class PropuestaClienteService
     {
         _propuestaRepository = propuestaRepository;
         _representanteRepository = representanteRepository;
+        _clientScopeRepository = clientScopeRepository;
         _emailService = emailService;
         _actionTokenService = actionTokenService;
         _logger = logger;
@@ -60,7 +63,15 @@ public sealed class PropuestaClienteService
             return new CreatePropuestaClienteResult(CreatePropuestaClienteStatus.RepresentanteNotFound);
         }
 
-        if (!representante.Cosabcli.Contains(request.Cosabcli, StringComparer.OrdinalIgnoreCase))
+        var clientScope = await _clientScopeRepository.GetAsync(
+            representanteId,
+            cancellationToken);
+        if (!clientScope.RepresentanteExiste)
+        {
+            return new CreatePropuestaClienteResult(CreatePropuestaClienteStatus.RepresentanteNotFound);
+        }
+
+        if (!clientScope.Cosabcli.Contains(request.Cosabcli.Trim(), StringComparer.OrdinalIgnoreCase))
         {
             return new CreatePropuestaClienteResult(CreatePropuestaClienteStatus.CosabcliForbidden);
         }

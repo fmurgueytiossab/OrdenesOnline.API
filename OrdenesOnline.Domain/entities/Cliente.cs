@@ -39,4 +39,7 @@ public sealed class Cliente
 
     [Column("estado")]
     public string? Estado { get; set; }
+
+    [Column("gestor")]
+    public string? Gestor { get; set; }
 }

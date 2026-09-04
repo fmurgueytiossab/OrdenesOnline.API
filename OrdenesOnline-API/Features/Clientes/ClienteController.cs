@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace OrdenesOnline_API.Features.Clientes;
 
 [ApiController]
-//[Authorize]
+[Authorize]
 [Route("api/Cliente")]
 public sealed class ClienteController : ControllerBase
 {
@@ -26,7 +27,16 @@ public sealed class ClienteController : ControllerBase
         [FromQuery] int limit = ClienteService.DefaultResultLimit,
         CancellationToken cancellationToken = default)
     {
+        var subject = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (!int.TryParse(subject, out var representanteId))
+        {
+            return Problem(
+                title: "La identidad autenticada no contiene un usuario válido.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
         var result = await _service.Search(
+            representanteId,
             search,
             limit,
             cancellationToken);
@@ -37,6 +47,9 @@ public sealed class ClienteController : ControllerBase
                 title: "El texto de búsqueda no es válido.",
                 detail: $"Ingrese entre {ClienteService.MinimumSearchLength} y {ClienteService.MaximumSearchLength} caracteres.",
                 statusCode: StatusCodes.Status400BadRequest),
+            ClienteSearchStatus.RepresentanteNotFound => Problem(
+                title: "El usuario autenticado ya no existe.",
+                statusCode: StatusCodes.Status401Unauthorized),
             _ => Ok(result.Items ?? [])
         };
     }

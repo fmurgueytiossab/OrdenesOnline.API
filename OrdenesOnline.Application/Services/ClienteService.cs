@@ -11,18 +11,23 @@ public sealed class ClienteService
     public const int MaximumResultLimit = 50;
 
     private readonly IClienteRepository _clienteRepository;
+    private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
 
-    public ClienteService(IClienteRepository clienteRepository)
+    public ClienteService(
+        IClienteRepository clienteRepository,
+        IRepresentanteClientScopeRepository clientScopeRepository)
     {
         _clienteRepository = clienteRepository;
+        _clientScopeRepository = clientScopeRepository;
     }
 
     public async Task<ClienteSearchServiceResult> Search(
+        int representanteId,
         string? search,
         int limit = DefaultResultLimit,
         CancellationToken cancellationToken = default)
     {
-        var normalizedSearch = string.Join(
+       var normalizedSearch = string.Join(
             ' ',
             (search ?? string.Empty).Split(
                 ' ',
@@ -34,10 +39,24 @@ public sealed class ClienteService
             return new ClienteSearchServiceResult(ClienteSearchStatus.InvalidSearch);
         }
 
+        var clientScope = await _clientScopeRepository.GetAsync(
+            representanteId,
+            cancellationToken);
+        if (!clientScope.RepresentanteExiste)
+        {
+            return new ClienteSearchServiceResult(ClienteSearchStatus.RepresentanteNotFound);
+        }
+
+        if (clientScope.Gestores.Count == 0)
+        {
+            return new ClienteSearchServiceResult(ClienteSearchStatus.Success, []);
+        }
+
         var effectiveLimit = Math.Clamp(limit, 1, MaximumResultLimit);
         var clients = await _clienteRepository.SearchAsync(
             normalizedSearch,
             effectiveLimit,
+            clientScope.Gestores,
             cancellationToken);
 
         return new ClienteSearchServiceResult(ClienteSearchStatus.Success, clients);
@@ -47,7 +66,8 @@ public sealed class ClienteService
 public enum ClienteSearchStatus
 {
     Success,
-    InvalidSearch
+    InvalidSearch,
+    RepresentanteNotFound
 }
 
 public sealed record ClienteSearchServiceResult(

@@ -2,6 +2,7 @@ using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 using OrdenesOnline.Domain.interfaces;
+using OrdenesOnline.Tests.TestDoubles;
 
 namespace OrdenesOnline.Tests;
 
@@ -63,9 +64,11 @@ public sealed class ClienteServiceTests
     public async Task Search_WithLessThanThreeCharacters_DoesNotQueryRepository(string? search)
     {
         var clienteRepository = new FakeClienteRepository();
-        var service = new ClienteService(clienteRepository);
+        var service = new ClienteService(
+            clienteRepository,
+            new FakeRepresentanteClientScopeRepository());
 
-        var result = await service.Search(search);
+        var result = await service.Search(7, search);
 
         Assert.Equal(ClienteSearchStatus.InvalidSearch, result.Status);
         Assert.Equal(0, clienteRepository.SearchCalls);
@@ -75,13 +78,30 @@ public sealed class ClienteServiceTests
     public async Task Search_NormalizesWhitespaceAndLimitsResults()
     {
         var clienteRepository = new FakeClienteRepository();
-        var service = new ClienteService(clienteRepository);
+        var service = new ClienteService(
+            clienteRepository,
+            new FakeRepresentanteClientScopeRepository());
 
-        var result = await service.Search("  miguel   gutierrez  ", 200);
+        var result = await service.Search(7, "  miguel   gutierrez  ", 200);
 
         Assert.Equal(ClienteSearchStatus.Success, result.Status);
         Assert.Equal("miguel gutierrez", clienteRepository.Search);
         Assert.Equal(ClienteService.MaximumResultLimit, clienteRepository.Take);
+        Assert.Equal(["000905"], clienteRepository.Gestores);
+    }
+
+    [Fact]
+    public async Task Search_WhenRepresentativeDoesNotExist_DoesNotQueryClients()
+    {
+        var clienteRepository = new FakeClienteRepository();
+        var service = new ClienteService(
+            clienteRepository,
+            new FakeRepresentanteClientScopeRepository(representanteExiste: false));
+
+        var result = await service.Search(999, "miguel");
+
+        Assert.Equal(ClienteSearchStatus.RepresentanteNotFound, result.Status);
+        Assert.Equal(0, clienteRepository.SearchCalls);
     }
 
     private sealed class FakeClienteRepository : IClienteRepository
@@ -89,15 +109,18 @@ public sealed class ClienteServiceTests
         public int SearchCalls { get; private set; }
         public string? Search { get; private set; }
         public int Take { get; private set; }
+        public IReadOnlyList<string>? Gestores { get; private set; }
 
         public Task<IReadOnlyList<ClienteSearchResult>> SearchAsync(
             string search,
             int take,
+            IReadOnlyList<string> gestores,
             CancellationToken cancellationToken = default)
         {
             SearchCalls++;
             Search = search;
             Take = take;
+            Gestores = gestores;
             return Task.FromResult<IReadOnlyList<ClienteSearchResult>>([]);
         }
     }
