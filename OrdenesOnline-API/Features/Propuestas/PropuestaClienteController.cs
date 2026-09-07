@@ -81,6 +81,9 @@ public sealed class PropuestaClienteController : ControllerBase
 
         return result.Status switch
         {
+            CreatePropuestaClienteStatus.InvalidValidity => Problem(
+                title: "El horario o la vigencia cambió. Revisa la fecha y vuelve a enviar la orden.",
+                statusCode: StatusCodes.Status409Conflict),
             CreatePropuestaClienteStatus.RepresentanteNotFound => Problem(
                 title: "El usuario autenticado ya no existe.",
                 statusCode: StatusCodes.Status401Unauthorized),
@@ -89,7 +92,7 @@ public sealed class PropuestaClienteController : ControllerBase
                 statusCode: StatusCodes.Status403Forbidden),
             CreatePropuestaClienteStatus.InvalidMarket => Problem(
                 title: "El mercado indicado no es válido.",
-                detail: "Los valores permitidos son BVL, Canaccord Renta4 y Pershing.",
+                detail: "Los valores permitidos son BVL, Canaccord y Euroclear.",
                 statusCode: StatusCodes.Status400BadRequest),
             _ => StatusCode(
                 StatusCodes.Status201Created,

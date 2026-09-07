@@ -10,6 +10,10 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("market-hours.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.AddScoped<MarketHoursService>();
 
 var defaultConnection = GetRequiredConnectionString(builder.Configuration, "DefaultConnection");
 var opersabConnection = GetRequiredConnectionString(builder.Configuration, "Opersab");

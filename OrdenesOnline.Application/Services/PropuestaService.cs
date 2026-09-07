@@ -12,19 +12,22 @@ public sealed class PropuestaService
     private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
     private readonly ZapierService _zapierService;
     private readonly ILogger<PropuestaService> _logger;
+    private readonly MarketHoursService _marketHours;
 
     public PropuestaService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
         IRepresentanteClientScopeRepository clientScopeRepository,
         ZapierService zapierService,
-        ILogger<PropuestaService> logger)
+        ILogger<PropuestaService> logger,
+        MarketHoursService marketHours)
     {
         _propuestaRepository = propuestaRepository;
         _representanteRepository = representanteRepository;
         _clientScopeRepository = clientScopeRepository;
         _zapierService = zapierService;
         _logger = logger;
+        _marketHours = marketHours;
     }
 
     public async Task<CreatePropuestaResult> Create(
@@ -52,6 +55,12 @@ public sealed class PropuestaService
             return new CreatePropuestaResult(CreatePropuestaStatus.CosabcliForbidden);
         }
 
+        var hours = _marketHours.Get();
+        if (_marketHours.AppliesTo(request.Mercado) && !hours.IsOpen)
+            return new(CreatePropuestaStatus.MarketClosed, Message: _marketHours.ClosedMessage(hours));
+        if (!_marketHours.TryResolveValidity(request.Mercado, request.Vigencia, hours, out var validity))
+            return new(CreatePropuestaStatus.InvalidValidity, Message: "El horario o la vigencia cambió. Revisa la fecha y vuelve a enviar la orden.");
+
         var propuesta = new Propuesta
         {
             NombreOperador = representante.Nombre,
@@ -63,7 +72,7 @@ public sealed class PropuestaService
             TipoOrden = request.TipoOrden,
             Precio = request.Precio,
             Monto = request.Monto,
-            Vigencia = request.Vigencia,
+            Vigencia = validity,
             Mercado = request.Mercado,
             Estado = PropuestaEstados.Pendiente
         };
@@ -102,10 +111,13 @@ public enum CreatePropuestaStatus
 {
     Created,
     RepresentanteNotFound,
-    CosabcliForbidden
+    CosabcliForbidden,
+    MarketClosed,
+    InvalidValidity
 }
 
 public sealed record CreatePropuestaResult(
     CreatePropuestaStatus Status,
     int? PropuestaId = null,
-    bool NotificationDelivered = false);
+    bool NotificationDelivered = false,
+    string? Message = null);

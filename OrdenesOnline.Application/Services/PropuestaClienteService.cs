@@ -17,6 +17,7 @@ public sealed class PropuestaClienteService
     private readonly ActionTokenService _actionTokenService;
     private readonly ILogger<PropuestaClienteService> _logger;
     private readonly string _clientesFrontendUrl;
+    private readonly MarketHoursService _marketHours;
 
     public PropuestaClienteService(
         IPropuestaRepository propuestaRepository,
@@ -25,7 +26,8 @@ public sealed class PropuestaClienteService
         IEmailService emailService,
         ActionTokenService actionTokenService,
         ILogger<PropuestaClienteService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        MarketHoursService marketHours)
     {
         _propuestaRepository = propuestaRepository;
         _representanteRepository = representanteRepository;
@@ -33,6 +35,7 @@ public sealed class PropuestaClienteService
         _emailService = emailService;
         _actionTokenService = actionTokenService;
         _logger = logger;
+        _marketHours = marketHours;
         _clientesFrontendUrl = configuration["App:ClientesFrontendUrl"]?.TrimEnd('/')
             ?? throw new InvalidOperationException(
                 "Falta la configuración obligatoria 'App:ClientesFrontendUrl'.");
@@ -75,6 +78,11 @@ public sealed class PropuestaClienteService
         {
             return new CreatePropuestaClienteResult(CreatePropuestaClienteStatus.CosabcliForbidden);
         }
+
+        var hours = _marketHours.Get();
+        if (!_marketHours.TryResolveValidity(mercado, request.Vigencia, hours, out var validity))
+            return new(CreatePropuestaClienteStatus.InvalidValidity);
+        request.Vigencia = validity;
 
         var propuesta = new Propuesta
         {
@@ -264,6 +272,7 @@ public sealed class PropuestaClienteService
 
 public enum CreatePropuestaClienteStatus
 {
+    InvalidValidity,
     Created,
     RepresentanteNotFound,
     CosabcliForbidden,

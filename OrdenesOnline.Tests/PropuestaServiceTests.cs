@@ -11,6 +11,22 @@ namespace OrdenesOnline.Tests;
 
 public sealed class PropuestaServiceTests
 {
+    [Theory]
+    [InlineData("BVL")]
+    [InlineData("Canaccord")]
+    [InlineData("Euroclear")]
+    public async Task Create_AfterClosing_DoesNotSaveOrNotify(string market)
+    {
+        var repository = new FakePropuestaRepository();
+        var service = CreateService(repository, new FakeRepresentanteRepository(), HttpStatusCode.OK,
+            "2026-09-07T20:00:00Z");
+        var request = CreateRequest(); request.Mercado = market;
+        var result = await service.Create(7, request);
+        Assert.Equal(CreatePropuestaStatus.MarketClosed, result.Status);
+        Assert.Equal(0, repository.AddCalls);
+        Assert.Contains("08/09/2026", result.Message);
+    }
+
     [Fact]
     public async Task Create_WhenZapierFails_KeepsProposalAndReportsPendingNotification()
     {
@@ -50,7 +66,8 @@ public sealed class PropuestaServiceTests
     private static PropuestaService CreateService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
-        HttpStatusCode zapierStatus)
+        HttpStatusCode zapierStatus,
+        string utc = "2026-09-07T15:00:00Z")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -66,7 +83,8 @@ public sealed class PropuestaServiceTests
             representanteRepository,
             new FakeRepresentanteClientScopeRepository(),
             zapierService,
-            NullLogger<PropuestaService>.Instance);
+            NullLogger<PropuestaService>.Instance,
+            new MarketHoursService(configuration, new FixedTimeProvider(utc)));
     }
 
     private static PropuestaCreateRequest CreateRequest() => new()

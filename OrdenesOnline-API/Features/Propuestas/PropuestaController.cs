@@ -22,6 +22,7 @@ public sealed class PropuestaController : ControllerBase
     [ProducesResponseType<CreatePropuestaResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreatePropuestaResponse>> Post(
         [FromBody] PropuestaCreateRequest request,
         CancellationToken cancellationToken)
@@ -38,6 +39,8 @@ public sealed class PropuestaController : ControllerBase
 
         return result.Status switch
         {
+            CreatePropuestaStatus.MarketClosed or CreatePropuestaStatus.InvalidValidity => Problem(
+                title: result.Message, statusCode: StatusCodes.Status409Conflict),
             CreatePropuestaStatus.RepresentanteNotFound => Problem(
                 title: "El usuario autenticado ya no existe.",
                 statusCode: StatusCodes.Status401Unauthorized),

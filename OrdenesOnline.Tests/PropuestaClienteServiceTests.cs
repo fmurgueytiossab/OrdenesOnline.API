@@ -10,6 +10,35 @@ namespace OrdenesOnline.Tests;
 
 public sealed class PropuestaClienteServiceTests
 {
+    [Theory]
+    [InlineData("BVL")]
+    [InlineData("Canaccord")]
+    [InlineData("Euroclear")]
+    public async Task Create_AfterClosing_PersistsAndEmailsNextSessionDate(string market)
+    {
+        var repository = new FakePropuestaRepository();
+        var email = new FakeEmailService();
+        var service = CreateService(repository, email, utc: "2026-09-07T20:00:00Z");
+        var request = CreateRequest(market); request.Vigencia = "Solo el 08/09/2026";
+        var result = await service.Create(7, request);
+        Assert.Equal(CreatePropuestaClienteStatus.Created, result.Status);
+        Assert.Equal("Solo el 08/09/2026", repository.SavedProposal?.Vigencia);
+        Assert.Contains("Solo el 08/09/2026", email.Body);
+    }
+
+    [Fact]
+    public async Task Create_StaleTodayAfterClosing_DoesNotSaveOrEmail()
+    {
+        var repository = new FakePropuestaRepository();
+        var email = new FakeEmailService();
+        var service = CreateService(repository, email, utc: "2026-09-07T20:00:00Z");
+        var request = CreateRequest("BVL"); request.Vigencia = "Por hoy : 07/09/2026";
+        var result = await service.Create(7, request);
+        Assert.Equal(CreatePropuestaClienteStatus.InvalidValidity, result.Status);
+        Assert.Equal(0, repository.AddCalls);
+        Assert.Equal(0, email.SendCalls);
+    }
+
     [Fact]
     public async Task Create_SavesProposalBeforeSendingSummaryEmail()
     {
@@ -137,7 +166,8 @@ public sealed class PropuestaClienteServiceTests
         IPropuestaRepository propuestaRepository,
         IEmailService emailService,
         FakeActionTokenRepository? tokenRepository = null,
-        IRepresentanteClientScopeRepository? clientScopeRepository = null)
+        IRepresentanteClientScopeRepository? clientScopeRepository = null,
+        string utc = "2026-09-07T15:00:00Z")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -157,7 +187,8 @@ public sealed class PropuestaClienteServiceTests
             emailService,
             actionTokenService,
             NullLogger<PropuestaClienteService>.Instance,
-            configuration);
+            configuration,
+            new MarketHoursService(configuration, new FixedTimeProvider(utc)));
     }
 
     private static ActionTokenService CreateActionTokenService(
