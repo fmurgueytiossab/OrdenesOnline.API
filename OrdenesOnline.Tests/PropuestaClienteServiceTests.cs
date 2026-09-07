@@ -23,13 +23,13 @@ public sealed class PropuestaClienteServiceTests
         Assert.Equal(123, result.PropuestaId);
         Assert.True(result.EmailDelivered);
         Assert.Equal("cliente@example.com", emailService.To);
-        Assert.Contains("Canaccord Renta4", emailService.Body);
+        Assert.Contains("Canaccord", emailService.Body);
         Assert.Contains("Compra", emailService.Body);
         Assert.Contains("ABC", emailService.Body);
         Assert.Contains(
             "http://localhost:4200/Clientes/propuestas/revision?token=",
             emailService.Body);
-        Assert.Equal("Canaccord Renta4", propuestaRepository.SavedProposal?.Mercado);
+        Assert.Equal("Canaccord", propuestaRepository.SavedProposal?.Mercado);
         Assert.Equal("Pendiente", propuestaRepository.SavedProposal?.Estado);
     }
 
@@ -40,7 +40,7 @@ public sealed class PropuestaClienteServiceTests
         var emailService = new FakeEmailService(throwOnSend: true);
         var service = CreateService(propuestaRepository, emailService);
 
-        var result = await service.Create(7, CreateRequest("Pershing"));
+        var result = await service.Create(7, CreateRequest("Euroclear"));
 
         Assert.Equal(CreatePropuestaClienteStatus.Created, result.Status);
         Assert.Equal(123, result.PropuestaId);

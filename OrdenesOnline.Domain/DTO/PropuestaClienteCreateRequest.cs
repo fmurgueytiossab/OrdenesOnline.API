@@ -5,7 +5,7 @@ namespace OrdenesOnline.Domain.DTO;
 public sealed class PropuestaClienteCreateRequest : IValidatableObject
 {
     private static readonly string[] MercadosPermitidos =
-        ["BVL", "Canaccord Renta4", "Pershing"];
+        ["BVL", "Canaccord", "Euroclear"];
 
     [Required, EmailAddress, StringLength(254)]
     public string CorreoCliente { get; set; } = string.Empty;
@@ -78,9 +78,13 @@ public sealed class PropuestaClienteCreateRequest : IValidatableObject
 
     public static bool TryGetCanonicalMarket(string? market, out string canonicalMarket)
     {
-        canonicalMarket = MercadosPermitidos.FirstOrDefault(
-            allowed => string.Equals(allowed, market?.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?? string.Empty;
+        canonicalMarket = market?.Trim().ToUpperInvariant() switch
+        {
+            "01" or "BVL" => "BVL",
+            "98" or "CANACCORD" or "CANACCORD RENTA4" => "Canaccord",
+            "16" or "EUROCLEAR" => "Euroclear",
+            _ => string.Empty
+        };
 
         return canonicalMarket.Length > 0;
     }

@@ -8,7 +8,11 @@ public sealed class PropuestaClienteCreateRequestTests
     [Theory]
     [InlineData("BVL")]
     [InlineData("Canaccord Renta4")]
-    [InlineData("Pershing")]
+    [InlineData("Euroclear")]
+    [InlineData("01")]
+    [InlineData("98")]
+    [InlineData("16")]
+    [InlineData("Canaccord")]
     public void Validation_AcceptsSupportedMarkets(string market)
     {
         var results = Validate(CreateRequest(market));

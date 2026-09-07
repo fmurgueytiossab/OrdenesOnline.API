@@ -14,24 +14,23 @@ namespace OrdenesOnline_API.Features.Propuestas;
 public sealed class PropuestaClienteController : ControllerBase
 {
     private readonly PropuestaClienteService _service;
-    private readonly PropuestaBvlSeguimientoService _seguimientoService;
+    private readonly PropuestaSeguimientoService _seguimientoService;
 
     public PropuestaClienteController(
         PropuestaClienteService service,
-        PropuestaBvlSeguimientoService seguimientoService)
+        PropuestaSeguimientoService seguimientoService)
     {
         _service = service;
         _seguimientoService = seguimientoService;
     }
 
     [HttpGet("seguimiento")]
-    [HttpGet("seguimiento/bvl")]
-    [ProducesResponseType<PropuestaBvlSeguimientoPage>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PropuestaSeguimientoPage>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PropuestaBvlSeguimientoPage>> GetBvlTracking(
+    public async Task<ActionResult<PropuestaSeguimientoPage>> GetTracking(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = PropuestaBvlSeguimientoService.DefaultPageSize,
+        [FromQuery] int pageSize = PropuestaSeguimientoService.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         var subject = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -50,11 +49,11 @@ public sealed class PropuestaClienteController : ControllerBase
 
         return result.Status switch
         {
-            PropuestaBvlSeguimientoStatus.InvalidPagination => Problem(
+            PropuestaSeguimientoStatus.InvalidPagination => Problem(
                 title: "La paginación indicada no es válida.",
-                detail: $"La página debe ser mayor que cero y pageSize debe estar entre 1 y {PropuestaBvlSeguimientoService.MaximumPageSize}.",
+                detail: $"La página debe ser mayor que cero y pageSize debe estar entre 1 y {PropuestaSeguimientoService.MaximumPageSize}.",
                 statusCode: StatusCodes.Status400BadRequest),
-            PropuestaBvlSeguimientoStatus.RepresentanteNotFound => Problem(
+            PropuestaSeguimientoStatus.RepresentanteNotFound => Problem(
                 title: "El usuario autenticado ya no existe.",
                 statusCode: StatusCodes.Status401Unauthorized),
             _ => Ok(result.Page)

@@ -64,7 +64,8 @@ public sealed class PropuestaService
             Precio = request.Precio,
             Monto = request.Monto,
             Vigencia = request.Vigencia,
-            Mercado = request.Mercado
+            Mercado = request.Mercado,
+            Estado = PropuestaEstados.Pendiente
         };
 
         await _propuestaRepository.AddAsync(propuesta, cancellationToken);

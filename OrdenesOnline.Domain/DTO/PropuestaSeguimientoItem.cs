@@ -1,6 +1,6 @@
 namespace OrdenesOnline.Domain.DTO;
 
-public sealed record PropuestaBvlSeguimientoItem(
+public sealed record PropuestaSeguimientoItem(
     int CodigoOrden,
     string Cosabcli,
     DateOnly FechaPropuesta,
@@ -16,8 +16,8 @@ public sealed record PropuestaBvlSeguimientoItem(
     string Estado,
     string Mercado);
 
-public sealed record PropuestaBvlSeguimientoPage(
-    IReadOnlyList<PropuestaBvlSeguimientoItem> Items,
+public sealed record PropuestaSeguimientoPage(
+    IReadOnlyList<PropuestaSeguimientoItem> Items,
     int Page,
     int PageSize,
     int TotalCount,

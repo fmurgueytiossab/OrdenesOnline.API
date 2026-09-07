@@ -2,9 +2,9 @@ using OrdenesOnline.Domain.entities;
 
 namespace OrdenesOnline.Domain.interfaces;
 
-public interface IPropuestaBvlSeguimientoRepository
+public interface IPropuestaSeguimientoRepository
 {
-    Task<PropuestaBvlSeguimientoSnapshot> GetAsync(
+    Task<PropuestaSeguimientoSnapshot> GetAsync(
         int representanteId,
         CancellationToken cancellationToken = default);
 }
