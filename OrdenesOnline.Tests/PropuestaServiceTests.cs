@@ -46,7 +46,26 @@ public sealed class PropuestaServiceTests
     }
 
     [Fact]
-    public async Task Create_WhenCosabcliIsNotAuthorized_DoesNotSaveProposal()
+    public async Task Create_WhenZapierIsNotConfigured_KeepsProposalAndReportsPendingNotification()
+    {
+        var propuestaRepository = new FakePropuestaRepository();
+        var representanteRepository = new FakeRepresentanteRepository();
+        var service = CreateService(
+            propuestaRepository,
+            representanteRepository,
+            HttpStatusCode.OK,
+            zapierWebhookUrl: null);
+
+        var result = await service.Create(7, CreateRequest());
+
+        Assert.Equal(CreatePropuestaStatus.Created, result.Status);
+        Assert.Equal(123, result.PropuestaId);
+        Assert.False(result.NotificationDelivered);
+        Assert.Equal(1, propuestaRepository.AddCalls);
+    }
+
+    [Fact]
+    public async Task Create_DoesNotRestrictCosabcliForRepresentatives()
     {
         var propuestaRepository = new FakePropuestaRepository();
         var representanteRepository = new FakeRepresentanteRepository();
@@ -59,20 +78,21 @@ public sealed class PropuestaServiceTests
 
         var result = await service.Create(7, request);
 
-        Assert.Equal(CreatePropuestaStatus.CosabcliForbidden, result.Status);
-        Assert.Equal(0, propuestaRepository.AddCalls);
+        Assert.Equal(CreatePropuestaStatus.Created, result.Status);
+        Assert.Equal(1, propuestaRepository.AddCalls);
     }
 
     private static PropuestaService CreateService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
         HttpStatusCode zapierStatus,
-        string utc = "2026-09-07T15:00:00Z")
+        string utc = "2026-09-07T15:00:00Z",
+        string? zapierWebhookUrl = "https://example.test/webhook")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["App:ZapierWebhookUrl"] = "https://example.test/webhook"
+                ["App:ZapierWebhookUrl"] = zapierWebhookUrl
             })
             .Build();
         var httpClient = new HttpClient(new StubHttpMessageHandler(zapierStatus));
@@ -81,7 +101,6 @@ public sealed class PropuestaServiceTests
         return new PropuestaService(
             propuestaRepository,
             representanteRepository,
-            new FakeRepresentanteClientScopeRepository(),
             zapierService,
             NullLogger<PropuestaService>.Instance,
             new MarketHoursService(configuration, new FixedTimeProvider(utc)));

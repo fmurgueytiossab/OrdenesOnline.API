@@ -7,19 +7,16 @@ namespace OrdenesOnline.Application.Services;
 public sealed class ZapierService
 {
     private readonly HttpClient _httpClient;
-    private readonly Uri _webhookUri;
+    private readonly Uri? _webhookUri;
 
     public ZapierService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
 
         var webhookUrl = configuration["App:ZapierWebhookUrl"];
-        if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out var webhookUri))
-        {
-            throw new InvalidOperationException("Falta una App:ZapierWebhookUrl válida.");
-        }
-
-        _webhookUri = webhookUri;
+        _webhookUri = Uri.TryCreate(webhookUrl, UriKind.Absolute, out var webhookUri)
+            ? webhookUri
+            : null;
     }
 
     public async Task EnviarPropuestaCreada(
@@ -28,6 +25,12 @@ public sealed class ZapierService
         string moneda,
         CancellationToken cancellationToken = default)
     {
+        if (_webhookUri is null)
+        {
+            throw new ZapierConfigurationException(
+                "Falta una App:ZapierWebhookUrl válida.");
+        }
+
         var payload = new
         {
             propuestaId = propuesta.PropuestaId,
@@ -55,3 +58,5 @@ public sealed class ZapierService
         response.EnsureSuccessStatusCode();
     }
 }
+
+public sealed class ZapierConfigurationException(string message) : Exception(message);

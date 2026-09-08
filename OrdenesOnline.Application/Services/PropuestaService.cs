@@ -9,7 +9,6 @@ public sealed class PropuestaService
 {
     private readonly IPropuestaRepository _propuestaRepository;
     private readonly IRepresentanteRepository _representanteRepository;
-    private readonly IRepresentanteClientScopeRepository _clientScopeRepository;
     private readonly ZapierService _zapierService;
     private readonly ILogger<PropuestaService> _logger;
     private readonly MarketHoursService _marketHours;
@@ -17,14 +16,12 @@ public sealed class PropuestaService
     public PropuestaService(
         IPropuestaRepository propuestaRepository,
         IRepresentanteRepository representanteRepository,
-        IRepresentanteClientScopeRepository clientScopeRepository,
         ZapierService zapierService,
         ILogger<PropuestaService> logger,
         MarketHoursService marketHours)
     {
         _propuestaRepository = propuestaRepository;
         _representanteRepository = representanteRepository;
-        _clientScopeRepository = clientScopeRepository;
         _zapierService = zapierService;
         _logger = logger;
         _marketHours = marketHours;
@@ -40,19 +37,6 @@ public sealed class PropuestaService
         if (representante is null)
         {
             return new CreatePropuestaResult(CreatePropuestaStatus.RepresentanteNotFound);
-        }
-
-        var clientScope = await _clientScopeRepository.GetAsync(
-            representanteId,
-            cancellationToken);
-        if (!clientScope.RepresentanteExiste)
-        {
-            return new CreatePropuestaResult(CreatePropuestaStatus.RepresentanteNotFound);
-        }
-
-        if (!clientScope.Cosabcli.Contains(request.Cosabcli.Trim(), StringComparer.OrdinalIgnoreCase))
-        {
-            return new CreatePropuestaResult(CreatePropuestaStatus.CosabcliForbidden);
         }
 
         var hours = _marketHours.Get();
@@ -89,6 +73,7 @@ public sealed class PropuestaService
                 cancellationToken);
         }
         catch (Exception exception) when (
+            exception is ZapierConfigurationException ||
             exception is HttpRequestException ||
             exception is TimeoutException ||
             exception is TaskCanceledException && !cancellationToken.IsCancellationRequested)
@@ -111,7 +96,6 @@ public enum CreatePropuestaStatus
 {
     Created,
     RepresentanteNotFound,
-    CosabcliForbidden,
     MarketClosed,
     InvalidValidity
 }

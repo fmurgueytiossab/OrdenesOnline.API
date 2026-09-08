@@ -21,7 +21,6 @@ public sealed class PropuestaController : ControllerBase
     [HttpPost]
     [ProducesResponseType<CreatePropuestaResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreatePropuestaResponse>> Post(
         [FromBody] PropuestaCreateRequest request,
@@ -44,9 +43,6 @@ public sealed class PropuestaController : ControllerBase
             CreatePropuestaStatus.RepresentanteNotFound => Problem(
                 title: "El usuario autenticado ya no existe.",
                 statusCode: StatusCodes.Status401Unauthorized),
-            CreatePropuestaStatus.CosabcliForbidden => Problem(
-                title: "El usuario no tiene acceso al código de cliente indicado.",
-                statusCode: StatusCodes.Status403Forbidden),
             _ => StatusCode(
                 StatusCodes.Status201Created,
                 new CreatePropuestaResponse(

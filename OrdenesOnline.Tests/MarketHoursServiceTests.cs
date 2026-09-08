@@ -7,17 +7,17 @@ namespace OrdenesOnline.Tests;
 public sealed class MarketHoursServiceTests
 {
     [Theory]
-    [InlineData("2026-09-07T13:29:59Z", false, "08:30", "15:00")]
-    [InlineData("2026-09-07T13:30:00Z", true, "08:30", "15:00")]
-    [InlineData("2026-09-07T19:59:59Z", true, "08:30", "15:00")]
-    [InlineData("2026-09-07T20:00:00Z", false, "08:30", "15:00")]
-    [InlineData("2026-11-02T14:29:59Z", false, "09:30", "16:00")]
-    [InlineData("2026-11-02T14:30:00Z", true, "09:30", "16:00")]
-    [InlineData("2026-11-02T20:59:59Z", true, "09:30", "16:00")]
-    [InlineData("2026-11-02T21:00:00Z", false, "09:30", "16:00")]
-    [InlineData("2026-03-06T15:00:00Z", true, "09:30", "16:00")]
-    [InlineData("2026-03-09T15:00:00Z", true, "08:30", "15:00")]
-    public void EnforcesOpeningAndClosingWithSeasonChanges(string utc, bool open, string opening, string closing)
+    [InlineData("2026-09-07T10:59:59Z", false, "06:00", "15:00")]
+    [InlineData("2026-09-07T11:00:00Z", true, "06:00", "15:00")]
+    [InlineData("2026-09-07T19:59:59Z", true, "06:00", "15:00")]
+    [InlineData("2026-09-07T20:00:00Z", false, "06:00", "15:00")]
+    [InlineData("2026-11-02T10:59:59Z", false, "06:00", "16:00")]
+    [InlineData("2026-11-02T11:00:00Z", true, "06:00", "16:00")]
+    [InlineData("2026-11-02T20:59:59Z", true, "06:00", "16:00")]
+    [InlineData("2026-11-02T21:00:00Z", false, "06:00", "16:00")]
+    [InlineData("2026-03-06T15:00:00Z", true, "06:00", "16:00")]
+    [InlineData("2026-03-09T15:00:00Z", true, "06:00", "15:00")]
+    public void UsesFixedOrderEntryOpeningAndSeasonalClosing(string utc, bool open, string opening, string closing)
     {
         var state = Service(utc).Get();
         Assert.Equal(open, state.IsOpen);
@@ -47,6 +47,19 @@ public sealed class MarketHoursServiceTests
         });
         Assert.False(service.Get().IsOpen);
         Assert.Equal(new DateOnly(2026, 9, 8), service.Get().ValidForDate);
+    }
+
+    [Fact]
+    public void DoesNotUseSeasonalOrDailyMarketOpeningForOrderEntry()
+    {
+        var service = Service("2026-09-07T11:00:00Z", new()
+        {
+            ["MarketHours:EarlySeason:Open"] = "08:30",
+            ["MarketHours:Overrides:2026-09-07:Open"] = "09:30"
+        });
+
+        Assert.True(service.Get().IsOpen);
+        Assert.Equal("06:00", service.Get().OpensAt.ToString("HH:mm"));
     }
 
     [Theory]

@@ -73,11 +73,11 @@ public sealed class MarketHoursService(IConfiguration configuration, TimeProvide
         var early = date >= march && date < november;
         var season = early ? "EarlySeason" : "LateSeason";
         var exception = configuration.GetSection($"MarketHours:Overrides:{date:yyyy-MM-dd}");
-        var opening = exception["Open"] ?? configuration[$"MarketHours:{season}:Open"] ?? (early ? "08:30" : "09:30");
+        var opening = configuration["MarketHours:OrderEntryOpen"] ?? "06:00";
         var closing = exception["Close"] ?? configuration[$"MarketHours:{season}:Close"] ?? (early ? "15:00" : "16:00");
         var open = TimeOnly.ParseExact(opening, "HH:mm", Culture);
         var close = TimeOnly.ParseExact(closing, "HH:mm", Culture);
-        if (close <= open) throw new InvalidOperationException("MarketHours: el cierre debe ser posterior a la apertura.");
+        if (close <= open) throw new InvalidOperationException("MarketHours: el cierre debe ser posterior al inicio de recepción de órdenes.");
         var holiday = configuration.GetSection("MarketHours:ClosedDates").GetChildren()
             .Any(item => item.Value == date.ToString("yyyy-MM-dd", Culture));
         var trading = date.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !holiday;
