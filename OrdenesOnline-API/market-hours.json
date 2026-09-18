@@ -1,12 +1,12 @@
 {
   "MarketHours": {
     "ApplyToAllMarkets": true,
-    "OrderEntryOpen": "06:00",
+    "OrderEntryOpen": "07:30",
     "EarlySeason": {
-      "Close": "15:00"
+      "Close": "17:00"
     },
     "LateSeason": {
-      "Close": "16:00"
+      "Close": "17:00"
     },
     "ClosedDates": [
       "2026-01-01",
