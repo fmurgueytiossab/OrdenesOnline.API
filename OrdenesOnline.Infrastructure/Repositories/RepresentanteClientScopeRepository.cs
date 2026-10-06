@@ -33,7 +33,9 @@ public sealed class RepresentanteClientScopeRepository : IRepresentanteClientSco
             return new RepresentanteClientScope(false, [], []);
         }
 
-        var seedClientCodes = (await _appContext.CodeRepresentantes
+        // Los cosabcli estan asociados a UserRepresentante mediante CodeRepresentante.
+        // Primero localizar esas filas en clientes; su gestor determina la cartera accesible.
+        var representativeClientCodes = (await _appContext.CodeRepresentantes
                 .AsNoTracking()
                 .Where(code => code.RepresentanteId == representanteId)
                 .Select(code => code.Cosabcli)
@@ -44,14 +46,14 @@ public sealed class RepresentanteClientScopeRepository : IRepresentanteClientSco
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (seedClientCodes.Count == 0)
+        if (representativeClientCodes.Count == 0)
         {
             return new RepresentanteClientScope(true, [], []);
         }
 
         var gestores = (await _opersabContext.Clientes
                 .AsNoTracking()
-                .Where(cliente => seedClientCodes.Contains(cliente.Cosabcli))
+                .Where(cliente => representativeClientCodes.Contains(cliente.Cosabcli))
                 .Where(cliente => cliente.Gestor != null && cliente.Gestor != string.Empty)
                 .Select(cliente => cliente.Gestor!)
                 .Distinct()

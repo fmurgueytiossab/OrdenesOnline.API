@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
 using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
@@ -10,14 +9,30 @@ namespace OrdenesOnline.Tests;
 
 public sealed class PropuestaClienteServiceTests
 {
+    [Fact]
+    public async Task LegacyReviewToken_CannotAcceptDocuSignProposal()
+    {
+        var proposals = new FakePropuestaRepository();
+        await proposals.AddAsync(new Propuesta());
+        var tokens = new FakeActionTokenRepository();
+        var tokenService = CreateActionTokenService(tokens);
+        var token = await tokenService.CreateProposalReviewTokenAsync(7, 123);
+        var service = CreateService(proposals, new FakeDocuSignService(), tokens,
+            docuSignRepository: new FakeDocuSignRepository { HasEnvelope = true });
+        Assert.Equal(PropuestaClienteReviewStatus.InvalidToken, (await service.GetReview(token.Value)).Status);
+        Assert.Equal(PropuestaClienteDecisionStatus.InvalidToken, (await service.Decide(token.Value, "Aceptado")).Status);
+        Assert.Equal("Pendiente", proposals.SavedProposal?.Estado);
+        Assert.NotNull(await tokenService.ValidateAsync(token.Value, ActionTokenService.ProposalReviewType));
+    }
+
     [Theory]
     [InlineData("BVL")]
     [InlineData("Canaccord")]
     [InlineData("Euroclear")]
-    public async Task Create_AfterClosing_PersistsAndEmailsNextSessionDate(string market)
+    public async Task Create_AfterClosing_PersistsAndSendsNextSessionDate(string market)
     {
         var repository = new FakePropuestaRepository();
-        var email = new FakeEmailService();
+        var email = new FakeDocuSignService();
         var service = CreateService(repository, email, utc: "2026-09-07T20:00:00Z");
         var request = CreateRequest(market); request.Vigencia = "Solo el 08/09/2026";
         var result = await service.Create(7, request);
@@ -27,10 +42,10 @@ public sealed class PropuestaClienteServiceTests
     }
 
     [Fact]
-    public async Task Create_StaleTodayAfterClosing_DoesNotSaveOrEmail()
+    public async Task Create_StaleTodayAfterClosing_DoesNotSaveOrSend()
     {
         var repository = new FakePropuestaRepository();
-        var email = new FakeEmailService();
+        var email = new FakeDocuSignService();
         var service = CreateService(repository, email, utc: "2026-09-07T20:00:00Z");
         var request = CreateRequest("BVL"); request.Vigencia = "Por hoy : 07/09/2026";
         var result = await service.Create(7, request);
@@ -40,48 +55,47 @@ public sealed class PropuestaClienteServiceTests
     }
 
     [Fact]
-    public async Task Create_SavesProposalBeforeSendingSummaryEmail()
+    public async Task Create_SavesProposalBeforeSendingForSignature()
     {
         var propuestaRepository = new FakePropuestaRepository();
-        var emailService = new FakeEmailService(() => Assert.Equal(1, propuestaRepository.AddCalls));
+        var emailService = new FakeDocuSignService(() => Assert.Equal(1, propuestaRepository.AddCalls));
         var service = CreateService(propuestaRepository, emailService);
 
         var result = await service.Create(7, CreateRequest("canaccord renta4"));
 
         Assert.Equal(CreatePropuestaClienteStatus.Created, result.Status);
         Assert.Equal(123, result.PropuestaId);
-        Assert.True(result.EmailDelivered);
-        Assert.Equal("cliente@example.com", emailService.To);
+        Assert.True(result.DocuSignEnviado);
+        Assert.False(result.EmailDelivered);
+        Assert.NotNull(result.EnvelopeId);
         Assert.Contains("Canaccord", emailService.Body);
         Assert.Contains("Compra", emailService.Body);
         Assert.Contains("ABC", emailService.Body);
-        Assert.Contains(
-            "http://localhost:4200/Clientes/propuestas/revision?token=",
-            emailService.Body);
+        Assert.DoesNotContain("revision?token=", emailService.Body);
         Assert.Equal("Canaccord", propuestaRepository.SavedProposal?.Mercado);
         Assert.Equal("Pendiente", propuestaRepository.SavedProposal?.Estado);
     }
 
     [Fact]
-    public async Task Create_WhenEmailFails_KeepsProposalAndReportsPendingEmail()
+    public async Task Create_WhenDocuSignFails_KeepsProposalAndReportsPendingSignature()
     {
         var propuestaRepository = new FakePropuestaRepository();
-        var emailService = new FakeEmailService(throwOnSend: true);
+        var emailService = new FakeDocuSignService(throwOnSend: true);
         var service = CreateService(propuestaRepository, emailService);
 
         var result = await service.Create(7, CreateRequest("Euroclear"));
 
         Assert.Equal(CreatePropuestaClienteStatus.Created, result.Status);
         Assert.Equal(123, result.PropuestaId);
-        Assert.False(result.EmailDelivered);
+        Assert.False(result.DocuSignEnviado);
         Assert.Equal(1, propuestaRepository.AddCalls);
     }
 
     [Fact]
-    public async Task Create_WhenCosabcliIsNotAuthorized_DoesNotSaveOrSendEmail()
+    public async Task Create_WhenCosabcliIsNotAuthorized_DoesNotSaveOrSend()
     {
         var propuestaRepository = new FakePropuestaRepository();
-        var emailService = new FakeEmailService();
+        var emailService = new FakeDocuSignService();
         var service = CreateService(propuestaRepository, emailService);
         var request = CreateRequest("BVL");
         request.Cosabcli = "NO-AUTORIZADO";
@@ -97,7 +111,7 @@ public sealed class PropuestaClienteServiceTests
     public async Task Create_WhenClientBelongsToResolvedManager_SavesProposal()
     {
         var propuestaRepository = new FakePropuestaRepository();
-        var emailService = new FakeEmailService();
+        var emailService = new FakeDocuSignService();
         var clientScopeRepository = new FakeRepresentanteClientScopeRepository(
             clientCodes: ["C001", "C002"]);
         var service = CreateService(
@@ -114,10 +128,10 @@ public sealed class PropuestaClienteServiceTests
     }
 
     [Fact]
-    public async Task Create_WhenMarketIsNotSupported_DoesNotSaveOrSendEmail()
+    public async Task Create_WhenMarketIsNotSupported_DoesNotSaveOrSend()
     {
         var propuestaRepository = new FakePropuestaRepository();
-        var emailService = new FakeEmailService();
+        var emailService = new FakeDocuSignService();
         var service = CreateService(propuestaRepository, emailService);
 
         var result = await service.Create(7, CreateRequest("Extranjero"));
@@ -146,7 +160,7 @@ public sealed class PropuestaClienteServiceTests
         var tokenRepository = new FakeActionTokenRepository();
         var service = CreateService(
             propuestaRepository,
-            new FakeEmailService(),
+            new FakeDocuSignService(),
             tokenRepository);
         var actionTokenService = CreateActionTokenService(tokenRepository);
         var issued = await actionTokenService.CreateProposalReviewTokenAsync(7, 123);
@@ -164,10 +178,11 @@ public sealed class PropuestaClienteServiceTests
 
     private static PropuestaClienteService CreateService(
         IPropuestaRepository propuestaRepository,
-        IEmailService emailService,
+        IDocuSignPropuestas emailService,
         FakeActionTokenRepository? tokenRepository = null,
         IRepresentanteClientScopeRepository? clientScopeRepository = null,
-        string utc = "2026-09-07T15:00:00Z")
+        string utc = "2026-09-07T15:00:00Z",
+        FakeDocuSignRepository? docuSignRepository = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -185,9 +200,8 @@ public sealed class PropuestaClienteServiceTests
             new FakeRepresentanteRepository(),
             clientScopeRepository ?? new FakeRepresentanteClientScopeRepository(),
             emailService,
+            docuSignRepository ?? new FakeDocuSignRepository(),
             actionTokenService,
-            NullLogger<PropuestaClienteService>.Instance,
-            configuration,
             new MarketHoursService(configuration, new FixedTimeProvider(utc)));
     }
 
@@ -217,39 +231,22 @@ public sealed class PropuestaClienteServiceTests
         Vigencia = "Día"
     };
 
-    private sealed class FakeEmailService : IEmailService
+    private sealed class FakeDocuSignService : IDocuSignPropuestas
     {
         private readonly Action? _beforeSend;
         private readonly bool _throwOnSend;
-
-        public FakeEmailService(Action? beforeSend = null, bool throwOnSend = false)
-        {
-            _beforeSend = beforeSend;
-            _throwOnSend = throwOnSend;
-        }
-
-        public FakeEmailService(bool throwOnSend) : this(null, throwOnSend)
-        {
-        }
-
+        public FakeDocuSignService(Action? beforeSend = null, bool throwOnSend = false)
+        { _beforeSend = beforeSend; _throwOnSend = throwOnSend; }
+        public FakeDocuSignService(bool throwOnSend) : this(null, throwOnSend) { }
         public int SendCalls { get; private set; }
-        public string? To { get; private set; }
         public string? Body { get; private set; }
-
-        public Task SendEmailAsync(
-            string to,
-            string subject,
-            string body,
-            CancellationToken cancellationToken = default)
+        public Task<DocuSignPreparacion> PrepareAsync(string code, CancellationToken ct) =>
+            Task.FromResult(new DocuSignPreparacion(Guid.NewGuid(), [new("Cliente", "Cliente", "+51999999999")]));
+        public Task<DocuSignEnvio> SendAsync(Propuesta p, PropuestaClienteCreateRequest request, DocuSignPreparacion plan, CancellationToken ct)
         {
-            _beforeSend?.Invoke();
-            SendCalls++;
-            To = to;
-            Body = body;
-
-            return _throwOnSend
-                ? Task.FromException(new InvalidOperationException("SMTP no disponible"))
-                : Task.CompletedTask;
+            _beforeSend?.Invoke(); SendCalls++;
+            Body = $"{p.Mercado} {p.Tipo} {p.Instrumento} {p.Vigencia}";
+            return Task.FromResult(new DocuSignEnvio(Guid.NewGuid(), !_throwOnSend, _throwOnSend ? "Pendiente" : null));
         }
     }
 

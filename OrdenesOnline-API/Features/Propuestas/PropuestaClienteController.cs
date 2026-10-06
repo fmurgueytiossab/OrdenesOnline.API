@@ -81,6 +81,9 @@ public sealed class PropuestaClienteController : ControllerBase
 
         return result.Status switch
         {
+            CreatePropuestaClienteStatus.InvalidSigners => Problem(
+                title: "No se puede enviar la propuesta para firma.", detail: result.Advertencia,
+                statusCode: StatusCodes.Status400BadRequest),
             CreatePropuestaClienteStatus.InvalidValidity => Problem(
                 title: "El horario o la vigencia cambió. Revisa la fecha y vuelve a enviar la orden.",
                 statusCode: StatusCodes.Status409Conflict),
@@ -99,13 +102,13 @@ public sealed class PropuestaClienteController : ControllerBase
                 new CreatePropuestaClienteResponse(
                     true,
                     result.PropuestaId!.Value,
-                    result.EmailDelivered,
-                    result.EmailDelivered
-                        ? "Propuesta creada y resumen enviado al cliente."
+                    false,
+                    result.DocuSignEnviado
+                        ? "Propuesta creada y envio aceptado por DocuSign para firma por WhatsApp."
                         : "La propuesta fue guardada correctamente.",
-                    result.EmailDelivered
-                        ? null
-                        : "No se pudo enviar el correo de resumen al cliente."))
+                    result.Advertencia,
+                    result.EnvelopeId,
+                    result.DocuSignEnviado))
         };
     }
 
@@ -179,7 +182,9 @@ public sealed record CreatePropuestaClienteResponse(
     int PropuestaId,
     bool EmailDelivered,
     string Message,
-    string? Warning);
+    string? Warning,
+    Guid? EnvelopeId = null,
+    bool DocuSignEnviado = false);
 
 public sealed record PropuestaClienteReviewResponse(
     int PropuestaId,

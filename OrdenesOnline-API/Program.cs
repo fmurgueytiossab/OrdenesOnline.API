@@ -6,6 +6,7 @@ using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.interfaces;
 using OrdenesOnline.Infrastructure.Persistence;
 using OrdenesOnline.Infrastructure.Repositories;
+using OrdenesOnline_API.Features.Propuestas;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -116,6 +117,15 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IPropuestaRepository, PropuestaRepository>();
 builder.Services.AddScoped<PropuestaService>();
 builder.Services.AddScoped<PropuestaClienteService>();
+builder.Services.AddSingleton<DocuSignOptions>();
+builder.Services.AddHttpClient("DocuSign", client => client.Timeout = TimeSpan.FromSeconds(45));
+builder.Services.AddSingleton(sp => new DocuSignClient(
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("DocuSign"), sp.GetRequiredService<DocuSignOptions>()));
+builder.Services.AddScoped<IClienteFirmantesRepository, ClienteFirmantesRepository>();
+builder.Services.AddScoped<IPropuestaDocuSignRepository, PropuestaDocuSignRepository>();
+builder.Services.AddScoped<IDocuSignPropuestas, DocuSignPropuestasService>();
+builder.Services.AddScoped<DocuSignArchiveService>();
+builder.Services.AddHostedService<DocuSignDownloadWorker>();
 builder.Services.AddScoped<IPropuestaSeguimientoRepository, PropuestaSeguimientoRepository>();
 builder.Services.AddScoped<PropuestaSeguimientoService>();
 builder.Services.AddScoped<IActionTokenRepository, ActionTokenRepository>();

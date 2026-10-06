@@ -32,6 +32,13 @@ public sealed class PropuestaClienteCreateRequestTests
     }
 
     [Fact]
+    public void Validation_AllowsNoEmailForWhatsApp()
+    {
+        var request = CreateRequest("BVL"); request.CorreoCliente = null;
+        Assert.Empty(Validate(request));
+    }
+
+    [Fact]
     public void Validation_RejectsInvalidClientEmail()
     {
         var request = CreateRequest("BVL");

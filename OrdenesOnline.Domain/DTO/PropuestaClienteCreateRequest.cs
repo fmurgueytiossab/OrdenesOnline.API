@@ -7,8 +7,9 @@ public sealed class PropuestaClienteCreateRequest : IValidatableObject
     private static readonly string[] MercadosPermitidos =
         ["BVL", "Canaccord", "Euroclear"];
 
-    [Required, EmailAddress, StringLength(254)]
-    public string CorreoCliente { get; set; } = string.Empty;
+    // Conservado para clientes anteriores; DocuSign usa el celular de Opersab.
+    [EmailAddress, StringLength(254)]
+    public string? CorreoCliente { get; set; }
 
     [Required, StringLength(30)]
     public string Cosabcli { get; set; } = string.Empty;
