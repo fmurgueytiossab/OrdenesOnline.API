@@ -58,7 +58,9 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:4200",
                 "https://ordenes.seminariosab.com.pe",
-                "https://ordenestest.seminariosab.com.pe")
+                "https://ordenestest.seminariosab.com.pe",
+                "https://ordenesclitst.seminariosab.com.pe"
+                )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
