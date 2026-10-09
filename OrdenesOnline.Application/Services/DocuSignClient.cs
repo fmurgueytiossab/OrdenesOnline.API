@@ -17,8 +17,12 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
     private string? _token;
     private string? _root;
     private DateTimeOffset _expires;
-    public static readonly string[] Labels = ["Operacion", "Valor", "Cantidad", "TipoOrden", "Precio",
-        "Moneda", "Monto", "Vigencia", "Mercado", "NombreRepresentante", "CodigoCliente"];
+    private static readonly string[] CommonLabels = ["TipoOperacion", "Valor", "Cantidad", "Precio",
+        "Monto", "Moneda", "Vigencia", "Mercado", "NombreRepresentante"];
+
+    public static IReadOnlyList<string> TemplateLabels(bool joint) => joint
+        ? [.. CommonLabels, "NombreCuenta", "CodigoCuenta"]
+        : [.. CommonLabels, "NombreCliente", "CodigoCliente"];
 
     private async Task Authenticate(CancellationToken ct)
     {
@@ -85,14 +89,29 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
     {
         if (response.IsSuccessStatusCode) return;
         string code = "";
+        string reason = "";
         try
         {
             using var error = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-            var candidate = String(error.RootElement, "errorCode");
-            if (candidate.Length <= 100 && candidate.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')) code = candidate;
+            if (error.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                static string Identifier(JsonElement root, string property)
+                {
+                    if (!root.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.String) return "";
+                    var candidate = value.GetString()!;
+                    return candidate.Length is > 0 and <= 100
+                        && candidate.All(c => char.IsAsciiLetterOrDigit(c) || c == '_') ? candidate : "";
+                }
+
+                code = Identifier(error.RootElement, "errorCode");
+                if (code.Length == 0) code = Identifier(error.RootElement, "error");
+                // OAuth devuelve error/error_description; registrar solo identificadores, nunca el cuerpo ni tokens.
+                reason = Identifier(error.RootElement, "error_description");
+            }
         }
         catch (JsonException) { }
-        throw new HttpRequestException($"DocuSign HTTP {(int)response.StatusCode} {code}", null, response.StatusCode);
+        var detail = string.Join(" ", new[] { code, reason }.Where(value => value.Length > 0));
+        throw new HttpRequestException($"DocuSign HTTP {(int)response.StatusCode} {detail}".TrimEnd(), null, response.StatusCode);
     }
 
     private async Task<JsonDocument> GetJson(string path, CancellationToken ct)
@@ -111,6 +130,7 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
         if (signers.Length != plan.Firmantes.Count) throw new InvalidOperationException("Cantidad de firmantes incorrecta en la plantilla.");
         var result = new List<DocuSignFirmante>();
         var labels = new HashSet<string>();
+        var expectedLabels = TemplateLabels(plan.Firmantes.Count > 1);
         foreach (var contact in plan.Firmantes)
         {
             var role = contact.Funcion switch
@@ -123,20 +143,34 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
                 throw new InvalidOperationException("Funciones de plantilla incorrectas o firma incrustada.");
             var id = String(matches[0], "recipientId");
             using var tabs = await GetJson($"/templates/{plan.TemplateId}/recipients/{Uri.EscapeDataString(id)}/tabs", ct);
-            if (!tabs.RootElement.TryGetProperty("signHereTabs", out var signs) || signs.GetArrayLength() == 0
-                || signs.EnumerateArray().All(s => String(s, "optional").Equals("true", StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("Cada titular debe tener una firma obligatoria.");
+            // Las acciones nativas son alternativas; no se rellenan ni se fuerzan ambas.
+            var decisionRole = contact.Funcion == "Cliente" ? "" : contact.Funcion;
+            RequireDecisionTab(tabs.RootElement, "approveTabs", $"Aprobar{decisionRole}", id);
+            RequireDecisionTab(tabs.RootElement, "declineTabs", $"Declinar{decisionRole}", id);
             if (tabs.RootElement.TryGetProperty("textTabs", out var text))
                 foreach (var tab in text.EnumerateArray())
                 {
                     var label = String(tab, "tabLabel");
-                    if (!Labels.Contains(label)) throw new InvalidOperationException("Etiqueta de texto inesperada en plantilla.");
+                    if (!expectedLabels.Contains(label))
+                        throw new InvalidOperationException($"Etiqueta de texto inesperada en plantilla: {JsonSerializer.Serialize(label.Length > 100 ? label[..100] + "..." : label)} (funcion {contact.Funcion}). Revise la etiqueta de datos del campo en DocuSign.");
                     labels.Add(label);
                 }
             result.Add(new(id, contact.Funcion, contact.Nombre, contact.Celular, "created", Identificacion: contact.Identificacion));
         }
-        if (Labels.Any(l => !labels.Contains(l))) throw new InvalidOperationException("Faltan etiquetas de datos en la plantilla.");
+        var missing = expectedLabels.Where(l => !labels.Contains(l)).ToArray();
+        if (missing.Length > 0)
+            throw new InvalidOperationException($"Faltan etiquetas de datos en la plantilla: {string.Join(", ", missing)}.");
         return result;
+    }
+
+    private static void RequireDecisionTab(JsonElement tabs, string collection, string label, string recipientId)
+    {
+        if (!tabs.TryGetProperty(collection, out var actions) || actions.ValueKind != JsonValueKind.Array
+            || actions.GetArrayLength() != 1 || actions[0].ValueKind != JsonValueKind.Object
+            || String(actions[0], "tabLabel") != label
+            || (String(actions[0], "recipientId") is { Length: > 0 } assigned && assigned != recipientId)
+            || String(actions[0], "conditionalParentLabel").Length > 0)
+            throw new InvalidOperationException($"Cada titular debe tener el boton nativo {label}, sin condiciones y asignado a su destinatario.");
     }
 
     public async Task<Guid> CreateDraft(Propuesta propuesta, PropuestaClienteCreateRequest request,
@@ -145,11 +179,13 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
         static string Number(decimal? n) => n?.ToString("0.########", CultureInfo.InvariantCulture) ?? "No aplica";
         var values = new Dictionary<string, string>
         {
-            ["Operacion"] = propuesta.Tipo, ["Valor"] = propuesta.Instrumento,
+            ["TipoOperacion"] = propuesta.Tipo, ["Valor"] = propuesta.Instrumento,
             ["Cantidad"] = propuesta.Cantidad > 0 ? propuesta.Cantidad.ToString(CultureInfo.InvariantCulture) : "No aplica",
-            ["TipoOrden"] = propuesta.TipoOrden, ["Precio"] = propuesta.TipoOrden.Equals("Mercado", StringComparison.OrdinalIgnoreCase) ? "A mercado" : Number(propuesta.Precio),
+            ["Precio"] = propuesta.TipoOrden.Equals("Mercado", StringComparison.OrdinalIgnoreCase) ? "A mercado" : Number(propuesta.Precio),
             ["Moneda"] = request.Moneda, ["Monto"] = Number(propuesta.Monto), ["Vigencia"] = propuesta.Vigencia,
-            ["Mercado"] = propuesta.Mercado, ["NombreRepresentante"] = propuesta.NombreOperador, ["CodigoCliente"] = propuesta.Cosabcli
+            ["Mercado"] = propuesta.Mercado, ["NombreRepresentante"] = propuesta.NombreOperador,
+            [plan.Firmantes.Count > 1 ? "NombreCuenta" : "NombreCliente"] = plan.Firmantes[0].Nombre,
+            [plan.Firmantes.Count > 1 ? "CodigoCuenta" : "CodigoCliente"] = propuesta.Cosabcli
         };
         var inline = new List<object>();
         foreach (var s in signers)
@@ -171,7 +207,7 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
         using var response = await Request(HttpMethod.Post, "/envelopes", new
         {
             status = "created", emailSubject = $"Propuesta {propuesta.PropuestaId} - Autorizacion de orden",
-            emailBlurb = "Revise la propuesta y firme para autorizarla.",
+            emailBlurb = "Revise la propuesta y seleccione «Aprobar» o «Declinar», según su decisión.",
             compositeTemplates = new[] { new { compositeTemplateId = "1", serverTemplates = new[] { new { sequence = "1", templateId = plan.TemplateId } },
                 inlineTemplates = new[] { new { sequence = "2", recipients = new { signers = inline } } } } }
         }, ct);

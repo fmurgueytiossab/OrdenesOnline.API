@@ -19,6 +19,26 @@ namespace OrdenesOnline.Tests;
 public sealed class DocuSignTests
 {
     [Theory]
+    [InlineData("{\"error\":\"consent_required\"}", "DocuSign HTTP 400 consent_required")]
+    [InlineData("{\"error\":\"invalid_grant\",\"error_description\":\"no_valid_keys_or_signatures\"}", "DocuSign HTTP 400 invalid_grant no_valid_keys_or_signatures")]
+    [InlineData("{\"errorCode\":\"USER_NOT_FOUND\"}", "DocuSign HTTP 400 USER_NOT_FOUND")]
+    [InlineData("{\"error\":\"invalid_grant\",\"error_description\":\"Bearer secret-token\\nprivate key\",\"access_token\":\"secret-token\"}", "DocuSign HTTP 400 invalid_grant")]
+    [InlineData("{\"error\":42,\"error_description\":{\"secret\":\"private key\"}}", "DocuSign HTTP 400")]
+    [InlineData("<html>proxy error</html>", "DocuSign HTTP 400")]
+    [InlineData("[]", "DocuSign HTTP 400")]
+    public async Task AuthenticationFailure_ReportsSafeProviderIdentifiersWithoutResponseBody(string body, string message)
+    {
+        using var fixture = new Fixture(1);
+        fixture.Handler.AuthError = body;
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            fixture.Client.Request(HttpMethod.Get, "/templates/test/recipients", null, default));
+        Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
+        Assert.Equal(message, exception.Message);
+        Assert.Equal(0, fixture.Handler.CreateCalls);
+        Assert.Equal(0, fixture.Handler.SendCalls);
+    }
+
+    [Theory]
     [InlineData("999999999")]
     [InlineData("51999999999")]
     [InlineData("+51 999 999 999")]
@@ -178,6 +198,7 @@ public sealed class DocuSignTests
         Assert.Equal(1, fixture.Handler.SendCalls);
         using var draft = JsonDocument.Parse(fixture.Handler.Draft!);
         Assert.Equal("created", draft.RootElement.GetProperty("status").GetString());
+        Assert.Contains("«Aprobar» o «Declinar»", draft.RootElement.GetProperty("emailBlurb").GetString());
         var signers = draft.RootElement.GetProperty("compositeTemplates")[0].GetProperty("inlineTemplates")[0]
             .GetProperty("recipients").GetProperty("signers");
         Assert.Equal(count, signers.GetArrayLength());
@@ -187,6 +208,14 @@ public sealed class DocuSignTests
             Assert.Equal("1", signer.GetProperty("routingOrder").GetString());
             var tabs = signer.GetProperty("tabs").GetProperty("textTabs");
             Assert.All(tabs.EnumerateArray(), t => Assert.Equal("true", t.GetProperty("locked").GetString()));
+            var values = tabs.EnumerateArray().ToDictionary(t => t.GetProperty("tabLabel").GetString()!,
+                t => t.GetProperty("value").GetString());
+            Assert.Equal(DocuSignClient.TemplateLabels(count > 1).Order(), values.Keys.Order());
+            Assert.Equal("Compra", values["TipoOperacion"]);
+            Assert.Equal(count == 1 ? "Cliente Prueba" : "Cuenta Juan y Miguel", values[count == 1 ? "NombreCliente" : "NombreCuenta"]);
+            Assert.Equal("C001", values[count == 1 ? "CodigoCliente" : "CodigoCuenta"]);
+            Assert.Equal("No aplica", values["Monto"]);
+            Assert.Equal("A mercado", values["Precio"]);
             Assert.Contains(tabs.EnumerateArray(), t => t.GetProperty("tabLabel").GetString() == "Valor"
                 && t.GetProperty("value").GetString() == "ABC");
         }
@@ -217,12 +246,78 @@ public sealed class DocuSignTests
         Assert.Contains("no cree otra propuesta", result.Advertencia);
     }
 
-    [Fact]
-    public async Task Template_RequiresMandatorySignatureForEachRole()
+    [Theory]
+    [InlineData(1, "approveTabs", "Aprobar")]
+    [InlineData(1, "declineTabs", "Declinar")]
+    [InlineData(2, "approveTabs", "AprobarTitular2")]
+    [InlineData(2, "declineTabs", "DeclinarTitular2")]
+    public async Task Template_RequiresBothNativeDecisionButtonsForEachRecipient(int count, string missing, string label)
+    {
+        using var fixture = new Fixture(count);
+        fixture.Handler.MissingDecision = missing;
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        Assert.Contains(label, error.Message);
+        Assert.Equal(0, fixture.Handler.CreateCalls);
+    }
+
+    [Theory]
+    [InlineData("wrong-label")]
+    [InlineData("wrong-recipient")]
+    [InlineData("conditional")]
+    [InlineData("duplicate")]
+    [InlineData("signature-only")]
+    public async Task Template_RejectsInvalidOrMisassignedDecisionButtons(string fault)
     {
         using var fixture = new Fixture(2);
-        fixture.Handler.OptionalSecondSignature = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        fixture.Handler.DecisionFault = fault;
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        Assert.Equal(0, fixture.Handler.CreateCalls);
+        Assert.Equal(0, fixture.Handler.SendCalls);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Webhook_DecliningEitherHolderStopsJointApproval(int holder)
+    {
+        using var fixture = new Fixture(2);
+        fixture.Handler.EnvelopeStatus = "declined";
+        fixture.Handler.FirstStatus = holder == 1 ? "declined" : "completed";
+        fixture.Handler.SecondStatus = holder == 2 ? "declined" : "sent";
+        var repository = new FakeDocuSignRepository { Found = fixture.Tracked() };
+        Assert.IsType<OkResult>(await WebhookController(fixture, repository, true).Webhook(default));
+        Assert.Equal("declined", repository.Applied?.Estado);
+        Assert.Equal("declined", repository.Applied?.Firmantes[holder - 1].Estado);
+    }
+
+    [Theory]
+    [InlineData("Texto")]
+    [InlineData("")]
+    [InlineData("Operacion")]
+    [InlineData("TipoOrden")]
+    [InlineData("NombreCuenta")]
+    public async Task Template_IdentifiesUnexpectedTextLabelWithoutLoggingItsValue(string label)
+    {
+        using var fixture = new Fixture(1);
+        fixture.Handler.UnexpectedTextLabel = label;
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        Assert.Contains(JsonSerializer.Serialize(label), error.Message);
+        Assert.Contains("funcion Cliente", error.Message);
+        Assert.DoesNotContain("valor privado del campo", error.Message);
+        Assert.Equal(0, fixture.Handler.CreateCalls);
+    }
+
+    [Fact]
+    public async Task Template_IdentifiesMissingRequiredTextLabel()
+    {
+        using var fixture = new Fixture(1);
+        fixture.Handler.MissingTextLabel = "CodigoCliente";
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        Assert.Contains("Faltan etiquetas de datos en la plantilla: CodigoCliente.", error.Message);
         Assert.Equal(0, fixture.Handler.CreateCalls);
     }
 
@@ -276,8 +371,8 @@ public sealed class DocuSignTests
     private sealed class Contacts(int count) : IClienteFirmantesRepository
     {
         public Task<DocuSignContactos> GetAsync(string code, CancellationToken ct) => Task.FromResult(new DocuSignContactos(
-            count == 1 ? [new("Cliente", "Cuenta", "+51999999999")]
-                : [new("Titular1", "Cuenta", "+51999999999"), new("Titular2", "Cuenta", "+51988888888")]));
+            count == 1 ? [new("Cliente", "Cliente Prueba", "+51999999999")]
+                : [new("Titular1", "Cuenta Juan y Miguel", "+51999999999"), new("Titular2", "Cuenta Juan y Miguel", "+51988888888")]));
     }
 
     private sealed class Fixture : IDisposable
@@ -322,12 +417,17 @@ public sealed class DocuSignTests
     {
         public int CreateCalls, SendCalls, DownloadCalls;
         public string? Draft;
+        public string? AuthError;
         public Action? BeforeSend;
-        public bool LoseSendResponse, OptionalSecondSignature;
-        public string EnvelopeStatus = "completed", SecondStatus = "completed", Pdf = "%PDF-1.7\nfake document";
+        public bool LoseSendResponse;
+        public string? MissingDecision, DecisionFault;
+        public string? UnexpectedTextLabel, MissingTextLabel;
+        public string EnvelopeStatus = "completed", FirstStatus = "completed", SecondStatus = "completed", Pdf = "%PDF-1.7\nfake document";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/oauth/token") && AuthError is not null)
+                return new(HttpStatusCode.BadRequest) { Content = new StringContent(AuthError, Encoding.UTF8, "application/json") };
             object data;
             if (path.EndsWith("/oauth/token")) data = new { access_token = "test-token", expires_in = 3600 };
             else if (path.EndsWith("/oauth/userinfo")) data = new { accounts = new[] { new { account_id = account, base_uri = "https://demo.docusign.net" } } };
@@ -335,11 +435,30 @@ public sealed class DocuSignTests
             {
                 signers = Enumerable.Range(1, count).Select(i => new { recipientId = i.ToString(), roleName = count == 1 ? "Cliente" : $"Titular{i}" })
             };
-            else if (path.EndsWith("/tabs")) data = new
+            else if (path.EndsWith("/tabs"))
             {
-                signHereTabs = new[] { new { optional = OptionalSecondSignature && path.Contains("/2/") ? "true" : "false" } },
-                textTabs = DocuSignClient.Labels.Select(l => new { tabLabel = l })
-            };
+                var second = path.Contains("/2/");
+                var id = second ? "2" : "1";
+                var suffix = count == 1 ? "" : $"Titular{id}";
+                var fault = count == 1 || second;
+                object[] Button(string prefix) =>
+                    Enumerable.Range(0, fault && DecisionFault == "duplicate" ? 2 : 1).Select(_ => (object)new
+                    {
+                        tabLabel = prefix + (fault && DecisionFault == "wrong-label" ? "Titular1" : suffix),
+                        recipientId = fault && DecisionFault == "wrong-recipient" ? "1" : id,
+                        conditionalParentLabel = fault && DecisionFault == "conditional" ? "Seleccion" : ""
+                    }).ToArray();
+                data = new
+                {
+                    // Sin signHereTabs: debe admitir la decisión nativa sin una firma visible.
+                    approveTabs = fault && (MissingDecision == "approveTabs" || DecisionFault == "signature-only") ? [] : Button("Aprobar"),
+                    declineTabs = fault && (MissingDecision == "declineTabs" || DecisionFault == "signature-only") ? [] : Button("Declinar"),
+                    signHereTabs = DecisionFault == "signature-only" ? new[] { new { optional = "false" } } : [],
+                    textTabs = DocuSignClient.TemplateLabels(count > 1).Where(l => l != MissingTextLabel)
+                        .Concat(UnexpectedTextLabel is null ? [] : new[] { UnexpectedTextLabel })
+                        .Select(l => new { tabLabel = l, value = "valor privado del campo" })
+                };
+            }
             else if (request.Method == HttpMethod.Post && path.EndsWith("/envelopes"))
             { CreateCalls++; Draft = await request.Content!.ReadAsStringAsync(ct); data = new { envelopeId = envelope }; }
             else if (request.Method == HttpMethod.Put)
@@ -350,7 +469,7 @@ public sealed class DocuSignTests
             }
             else if (path.EndsWith("/recipients")) data = new
             {
-                signers = Enumerable.Range(1, count).Select(i => new { recipientId = i.ToString(), status = i == 2 ? SecondStatus : "completed",
+                signers = Enumerable.Range(1, count).Select(i => new { recipientId = i.ToString(), status = i == 2 ? SecondStatus : FirstStatus,
                     signedDateTime = "2026-10-05T18:00:00Z" })
             };
             else if (path.EndsWith("/documents/combined"))

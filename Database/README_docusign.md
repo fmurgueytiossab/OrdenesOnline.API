@@ -20,7 +20,7 @@ Los nombres y celulares proceden de Opersab:
 - Mancomunada (`fg_mancomunado` S/M): dos filas de `clientes_apoderados` con el mismo
   `cosabcli` de la cuenta. Se usa `clientes.descli` en ambas y el `nucel` de cada fila.
   Funciones `Titular1` y `Titular2`, dos celulares validos y distintos. Ambos deben
-  firmar el mismo sobre. El orden de asignacion es estable por celular; el codigo
+  aprobar el mismo sobre. El orden de asignacion es estable por celular; el codigo
   compartido no elimina ninguna fila. No se seleccionan arbitrariamente dos filas
   si hay mas de dos apoderados: la solicitud devuelve 400 para corregir los datos.
 
@@ -59,13 +59,36 @@ en los logs. El Application Pool necesita lectura sobre la clave privada y
 escritura sobre la carpeta de documentos. Reiniciar la aplicacion tras cambiar
 variables. Mantener ASPNETCORE_ENVIRONMENT=Test para este despliegue.
 
-Cada funcion necesita al menos una firma obligatoria de firma remota y las
-etiquetas de texto deben coincidir exactamente con estas:
+Cada funcion usa los botones nativos **Aprobar** y **Declinar** de DocuSign,
+sin necesidad de un campo de firma visible. Las etiquetas de datos de los
+botones (`tabLabel`) deben coincidir exactamente y estar asignadas al destinatario
+correspondiente, sin condiciones:
+
+| Plantilla | Funcion del destinatario | Aprobar | Declinar |
+| --- | --- | --- | --- |
+| Individual | Cliente | `Aprobar` | `Declinar` |
+| Mancomunada | Titular1 | `AprobarTitular1` | `DeclinarTitular1` |
+| Mancomunada | Titular2 | `AprobarTitular2` | `DeclinarTitular2` |
+
+Son acciones alternativas: no se solicita pulsar las dos. Los botones se heredan
+de la plantilla; la API no rellena sus valores ni crea otros botones. Eliminar
+los campos de firma obligatoria anteriores de estas plantillas para que la
+aprobacion no solicite una firma adicional. Guardar las plantillas antes de
+crear una nueva propuesta; los sobres ya creados conservan su configuracion.
+
+Las etiquetas de texto deben coincidir exactamente con estas:
 
 ```text
-Operacion Valor Cantidad TipoOrden Precio Moneda Monto Vigencia Mercado
-NombreRepresentante CodigoCliente
+TipoOperacion Valor Cantidad Precio Monto Moneda Vigencia Mercado
+NombreRepresentante
 ```
+
+La plantilla individual agrega `NombreCliente` y `CodigoCliente`; la mancomunada
+agrega `NombreCuenta` y `CodigoCuenta`. El nombre se obtiene de Opersab: nombre
+completo del cliente individual o `descli` compartido de la cuenta mancomunada.
+El codigo es `cosabcli` en ambas. `TipoOperacion` contiene Compra/Venta; el campo
+`TipoOrden` del endpoint se conserva para las reglas de precio, pero no es una
+etiqueta requerida en el documento.
 
 Los textos se rellenan desde el endpoint y quedan bloqueados para el firmante.
 
@@ -99,7 +122,7 @@ notificacion atrasada. SQL conserva estados terminales y solo actualiza el sobre
 vigente. Los antiguos endpoints de revision no aceptan propuestas con DocuSign.
 
 La propuesta pasa a `Aceptado` solo con sobre `completed` y todos los destinatarios
-registrados `completed`; `declined`/`voided` pasan a `Cancelado`. La firma del primer
+registrados `completed`; `declined`/`voided` pasan a `Cancelado`. La aprobacion del primer
 titular por si sola deja la propuesta pendiente. Esto no confirma ejecucion de la orden.
 
 Un servicio en segundo plano revisa descargas pendientes cada minuto, vuelve a
@@ -125,7 +148,7 @@ dotnet run --project .\OrdenesOnline-API\OrdenesOnline-API.csproj --launch-profi
 Tras publicar, activar Connect y realizar una propuesta individual y una
 mancomunada por Swagger con la autenticacion de representante. Verificar en
 `PropuestaDocuSign`, `PropuestaDocuSignFirmante` y `propuesta` que el sobre mancomunado
-permanezca pendiente despues de la primera firma, y que despues de la segunda
+permanezca pendiente despues de la primera aprobacion, y que despues de la segunda
 quede aceptado y archivado. Los sobres previos creados por la herramienta de
 prueba no se vinculan automaticamente a propuestas reales.
 
