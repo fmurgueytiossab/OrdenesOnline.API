@@ -24,4 +24,9 @@
     <ProjectReference Include="..\OrdenesOnline.Domain\OrdenesOnline.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\Database\Create OrdenesOnline.Api.sql" Link="Database\Create OrdenesOnline.Api.sql" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Database\Seed OrdenesOnline.Api.sql" Link="Database\Seed OrdenesOnline.Api.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

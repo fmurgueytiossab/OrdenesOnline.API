@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -35,6 +35,7 @@ namespace OrdenesOnline.Domain.entities
     {
         public const string Pendiente = "Pendiente";
         public const string Aceptado = "Aceptado";
+        public const string Ingresado = "Ingresado";
         public const string Cancelado = "Cancelado";
     }
 }

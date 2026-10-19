@@ -17,7 +17,7 @@ public sealed class DocuSignDownloadWorker(IServiceScopeFactory scopes, ILogger<
                 var options = scope.ServiceProvider.GetRequiredService<DocuSignOptions>();
                 var repository = scope.ServiceProvider.GetRequiredService<IPropuestaDocuSignRepository>();
                 var archive = scope.ServiceProvider.GetRequiredService<DocuSignArchiveService>();
-                foreach (var sobre in await repository.PendingDownloadsAsync(options.AccountId, options.Entorno, stoppingToken))
+                foreach (var sobre in await repository.PendingDownloadsAsync(options.AccountId, stoppingToken))
                 {
                     try
                     {

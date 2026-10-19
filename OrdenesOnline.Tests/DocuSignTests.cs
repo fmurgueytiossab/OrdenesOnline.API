@@ -106,6 +106,37 @@ public sealed class DocuSignTests
         Assert.DoesNotContain(result.Firmantes, f => f.Celular == "+51999111111");
     }
 
+    [Fact]
+    public void JointContacts_ThreeHoldersKeepThreeDistinctNormalizedPhones()
+    {
+        var result = ClienteFirmantesRepository.Resolve("Cuenta de tres", "M", "999111111",
+            ["+51 999-999-999", "988888888", "051977777777"]);
+        Assert.Null(result.Error);
+        Assert.Equal(new[] { "Titular1", "Titular2", "Titular3" }, result.Firmantes.Select(f => f.Funcion));
+        Assert.Equal(new[] { "+51977777777", "+51988888888", "+51999999999" }, result.Firmantes.Select(f => f.Celular));
+        Assert.All(result.Firmantes, f => Assert.Equal("Cuenta de tres", f.Nombre));
+    }
+
+    [Theory]
+    [InlineData("999999999", "988888888", "51999999999")]
+    [InlineData("999999999", "988888888", "invalido")]
+    public void JointContacts_ThreeHoldersRejectDuplicateOrInvalidPhones(string first, string second, string third)
+    {
+        var result = ClienteFirmantesRepository.Resolve("Cuenta", "S", null, [first, second, third]);
+        Assert.NotNull(result.Error); Assert.Empty(result.Firmantes);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void JointContacts_UnsupportedHolderCountIsRejected(int count)
+    {
+        var result = ClienteFirmantesRepository.Resolve("Cuenta", "S", null,
+            Enumerable.Range(1, count).Select(i => (string?)$"9{i:00000000}").ToArray());
+        Assert.NotNull(result.Error); Assert.Empty(result.Firmantes);
+    }
+
     [Theory]
     [InlineData("999999999", "999999999")]
     [InlineData("999999999", "invalido")]
@@ -136,6 +167,72 @@ public sealed class DocuSignTests
             Assert.IsType<UnauthorizedResult>(response);
             Assert.Equal(0, repository.ApplyCalls);
         }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Prepare_SelectsTemplateForExactSignerCount(int count)
+    {
+        using var fixture = new Fixture(count);
+        var plan = await fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default);
+        var expected = count switch { 1 => fixture.Options.IndividualTemplateId, 2 => fixture.Options.JointTemplateId,
+            _ => fixture.Options.JointThreeTemplateId!.Value };
+        Assert.Equal(expected, plan.TemplateId);
+        Assert.Equal(count, plan.Firmantes.Count);
+        Assert.Equal("Titular3", fixture.Options.JointThirdRole);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Prepare_ExistingCasesWorkWithoutThirdTemplate(int count)
+    {
+        using var fixture = new Fixture(count, configureThreeTemplate: false);
+        Assert.Null(fixture.Options.JointThreeTemplateId);
+        Assert.Equal(count, (await fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default)).Firmantes.Count);
+    }
+
+    [Fact]
+    public async Task Prepare_ThreeSignersRequireConfigurationBeforeCreatingEnvelope()
+    {
+        using var fixture = new Fixture(3, configureThreeTemplate: false);
+        var error = await Assert.ThrowsAsync<DocuSignContactException>(() =>
+            fixture.Service(new FakeDocuSignRepository()).PrepareAsync("C001", default));
+        Assert.Contains("DocuSign:JointThreeTemplateId", error.Message);
+        Assert.Equal(0, fixture.Handler.CreateCalls);
+        Assert.Equal(0, fixture.Handler.SendCalls);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Webhook_DecliningAnyOfThreeHoldersStopsApproval(int holder)
+    {
+        using var fixture = new Fixture(3);
+        fixture.Handler.EnvelopeStatus = "declined";
+        fixture.Handler.FirstStatus = holder == 1 ? "declined" : "completed";
+        fixture.Handler.SecondStatus = holder == 2 ? "declined" : "completed";
+        fixture.Handler.ThirdStatus = holder == 3 ? "declined" : "sent";
+        var repository = new FakeDocuSignRepository { Found = fixture.Tracked() };
+        Assert.IsType<OkResult>(await WebhookController(fixture, repository, true).Webhook(default));
+        Assert.Equal("declined", repository.Applied?.Estado);
+        Assert.Equal("declined", repository.Applied?.Firmantes[holder - 1].Estado);
+    }
+
+    [Fact]
+    public async Task Status_TwoOfThreeSignaturesCannotCompleteProposal()
+    {
+        using var fixture = new Fixture(3);
+        fixture.Handler.ThirdStatus = "sent";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Client.Status(fixture.Tracked(), default));
+        fixture.Handler.EnvelopeStatus = "sent";
+        var pending = await fixture.Client.Status(fixture.Tracked(), default);
+        Assert.Equal(2, pending.Firmantes.Count(s => s.Estado == "completed"));
+        fixture.Handler.EnvelopeStatus = "completed"; fixture.Handler.ThirdStatus = "completed";
+        Assert.Equal("completed", (await fixture.Client.Status(fixture.Tracked(), default)).Estado);
     }
 
     [Fact]
@@ -183,6 +280,7 @@ public sealed class DocuSignTests
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
+    [InlineData(3)]
     public async Task Send_RegistersDraftBeforeSendingAndLocksProposalData(int count)
     {
         using var fixture = new Fixture(count);
@@ -234,6 +332,58 @@ public sealed class DocuSignTests
         Assert.Equal(0, fixture.Handler.SendCalls);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Send_RenumberedRecipientsAreRegisteredByRoleAndWebhookCompletes(int count)
+    {
+        using var fixture = new Fixture(count);
+        fixture.Handler.TemplateRecipientIds = ["30432997", "97531", "87654"];
+        fixture.Handler.ReverseEnvelopeRecipients = true;
+        var repository = new FakeDocuSignRepository();
+        fixture.Handler.BeforeSend = () =>
+        {
+            Assert.True(repository.Registered);
+            Assert.Equal(Enumerable.Range(1, count).Select(i => i.ToString()), repository.Signers.Select(s => s.RecipientId));
+        };
+        var service = fixture.Service(repository);
+        var result = await service.SendAsync(Proposal(), Request(), await service.PrepareAsync("C001", default), default);
+        Assert.True(result.Enviado);
+        Assert.Equal(count, repository.Signers.Count);
+        Assert.Equal(fixture.Tracked().Firmantes.Select(s => s.Funcion), repository.Signers.Select(s => s.Funcion));
+        using var draft = JsonDocument.Parse(fixture.Handler.Draft!);
+        var inline = draft.RootElement.GetProperty("compositeTemplates")[0].GetProperty("inlineTemplates")[0]
+            .GetProperty("recipients").GetProperty("signers");
+        Assert.Equal("30432997", inline[0].GetProperty("recipientId").GetString());
+        repository.Found = fixture.Tracked() with { Estado = "created", Firmantes = repository.Signers };
+        Assert.IsType<OkResult>(await WebhookController(fixture, repository, true).Webhook(default));
+        Assert.Equal("completed", repository.Applied?.Estado);
+        Assert.All(repository.Applied!.Firmantes, s => Assert.Equal("completed", s.Estado));
+        Assert.Equal(1, fixture.Handler.CreateCalls);
+        Assert.Equal(1, fixture.Handler.SendCalls);
+    }
+
+    [Theory]
+    [InlineData("missing-role")]
+    [InlineData("duplicate-role")]
+    [InlineData("duplicate-id")]
+    [InlineData("empty-id")]
+    [InlineData("extra-signer")]
+    public async Task Send_AmbiguousDraftRecipientsAreNotRegisteredOrSent(string fault)
+    {
+        using var fixture = new Fixture(2);
+        fixture.Handler.EnvelopeRecipientFault = fault;
+        var repository = new FakeDocuSignRepository();
+        var service = fixture.Service(repository);
+        var result = await service.SendAsync(Proposal(), Request(), await service.PrepareAsync("C001", default), default);
+        Assert.False(result.Enviado);
+        Assert.NotNull(result.EnvelopeId);
+        Assert.False(repository.Registered);
+        Assert.Equal(1, fixture.Handler.CreateCalls);
+        Assert.Equal(0, fixture.Handler.SendCalls);
+    }
+
     [Fact]
     public async Task Send_LostResponse_DoesNotRepeatSend()
     {
@@ -251,6 +401,8 @@ public sealed class DocuSignTests
     [InlineData(1, "declineTabs", "Declinar")]
     [InlineData(2, "approveTabs", "AprobarTitular2")]
     [InlineData(2, "declineTabs", "DeclinarTitular2")]
+    [InlineData(3, "approveTabs", "AprobarTitular3")]
+    [InlineData(3, "declineTabs", "DeclinarTitular3")]
     public async Task Template_RequiresBothNativeDecisionButtonsForEachRecipient(int count, string missing, string label)
     {
         using var fixture = new Fixture(count);
@@ -364,6 +516,29 @@ public sealed class DocuSignTests
         await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
     }
 
+    [Fact]
+    public async Task Archive_LegacyMetadataWithEnvironmentStillValidatesAccountAndEnvelope()
+    {
+        using var fixture = new Fixture(1);
+        var archive = new DocuSignArchiveService(fixture.Client, fixture.Options);
+        var first = await archive.Download(fixture.Tracked(), default);
+        var path = Path.Combine(fixture.Directory, "123.docusign.json");
+        var metadata = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+        Assert.False(metadata.ContainsKey("Entorno"));
+        metadata["Entorno"] = "Desarrollo"; // metadatos de una version anterior
+        await File.WriteAllTextAsync(path, metadata.ToJsonString());
+        Assert.Equal(first, await archive.Download(fixture.Tracked(), default));
+        Assert.Equal(1, fixture.Handler.DownloadCalls);
+        metadata["AccountId"] = Guid.NewGuid().ToString();
+        await File.WriteAllTextAsync(path, metadata.ToJsonString());
+        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
+        metadata["AccountId"] = fixture.Account.ToString();
+        metadata["EnvelopeId"] = Guid.NewGuid().ToString();
+        await File.WriteAllTextAsync(path, metadata.ToJsonString());
+        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
+        Assert.Equal(1, fixture.Handler.DownloadCalls);
+    }
+
     private static Propuesta Proposal() => new() { PropuestaId = 123, Cosabcli = "C001", Tipo = "Compra", TipoOrden = "Mercado",
         Cantidad = 10, Instrumento = "ABC", Mercado = "BVL", NombreOperador = "Representante", Vigencia = "Hoy" };
     private static PropuestaClienteCreateRequest Request() => new() { Moneda = "USD" };
@@ -372,7 +547,8 @@ public sealed class DocuSignTests
     {
         public Task<DocuSignContactos> GetAsync(string code, CancellationToken ct) => Task.FromResult(new DocuSignContactos(
             count == 1 ? [new("Cliente", "Cliente Prueba", "+51999999999")]
-                : [new("Titular1", "Cuenta Juan y Miguel", "+51999999999"), new("Titular2", "Cuenta Juan y Miguel", "+51988888888")]));
+                : Enumerable.Range(1, count).Select(i => new DocuSignContacto($"Titular{i}", "Cuenta Juan y Miguel",
+                    new[] { "+51999999999", "+51988888888", "+51977777777" }[i - 1])).ToArray()));
     }
 
     private sealed class Fixture : IDisposable
@@ -385,7 +561,7 @@ public sealed class DocuSignTests
         public DocuSignClient Client { get; }
         private readonly HttpClient _http;
         private readonly int _count;
-        public Fixture(int count)
+        public Fixture(int count, bool configureThreeTemplate = true)
         {
             _count = count;
             System.IO.Directory.CreateDirectory(Directory);
@@ -402,14 +578,15 @@ public sealed class DocuSignTests
                 ["DocuSign:SignedDocumentsPath"] = Directory, ["DocuSign:WebhookUrl"] = "https://example.test/api/DocuSign/webhook",
                 ["DocuSign:WebhookHmacSecret"] = "secret"
             }).Build();
+            if (configureThreeTemplate) config["DocuSign:JointThreeTemplateId"] = Guid.NewGuid().ToString();
             Options = new(config);
             Handler = new(count, Account, Envelope); _http = new(Handler); Client = new(_http, Options);
         }
         public DocuSignPropuestasService Service(FakeDocuSignRepository repo) =>
             new(new Contacts(_count), repo, Client, Options, NullLogger<DocuSignPropuestasService>.Instance);
-        public DocuSignSobre Tracked() => new(1, 123, Envelope, Account, "Desarrollo", "completed", _count,
+        public DocuSignSobre Tracked() => new(1, 123, Envelope, Account, "completed", _count,
             Enumerable.Range(1, _count).Select(i => new DocuSignFirmante(i.ToString(), _count == 1 ? "Cliente" : $"Titular{i}",
-                "Cuenta", i == 1 ? "+51999999999" : "+51988888888", "sent")).ToArray());
+                "Cuenta", new[] { "+51999999999", "+51988888888", "+51977777777" }[i - 1], "sent")).ToArray());
         public void Dispose() { Client.Dispose(); _http.Dispose(); System.IO.Directory.Delete(Directory, true); }
     }
 
@@ -422,7 +599,10 @@ public sealed class DocuSignTests
         public bool LoseSendResponse;
         public string? MissingDecision, DecisionFault;
         public string? UnexpectedTextLabel, MissingTextLabel;
-        public string EnvelopeStatus = "completed", FirstStatus = "completed", SecondStatus = "completed", Pdf = "%PDF-1.7\nfake document";
+        public string[] TemplateRecipientIds = Enumerable.Range(1, count).Select(i => i.ToString()).ToArray();
+        public bool ReverseEnvelopeRecipients;
+        public string? EnvelopeRecipientFault;
+        public string EnvelopeStatus = "completed", FirstStatus = "completed", SecondStatus = "completed", ThirdStatus = "completed", Pdf = "%PDF-1.7\nfake document";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var path = request.RequestUri!.AbsolutePath;
@@ -433,14 +613,14 @@ public sealed class DocuSignTests
             else if (path.EndsWith("/oauth/userinfo")) data = new { accounts = new[] { new { account_id = account, base_uri = "https://demo.docusign.net" } } };
             else if (path.Contains("/templates/") && path.EndsWith("/recipients")) data = new
             {
-                signers = Enumerable.Range(1, count).Select(i => new { recipientId = i.ToString(), roleName = count == 1 ? "Cliente" : $"Titular{i}" })
+                signers = Enumerable.Range(1, count).Select(i => new { recipientId = TemplateRecipientIds[i - 1], roleName = count == 1 ? "Cliente" : $"Titular{i}" })
             };
             else if (path.EndsWith("/tabs"))
             {
-                var second = path.Contains("/2/");
-                var id = second ? "2" : "1";
-                var suffix = count == 1 ? "" : $"Titular{id}";
-                var fault = count == 1 || second;
+                var index = Array.FindIndex(TemplateRecipientIds, id => path.Contains($"/{id}/"));
+                var id = TemplateRecipientIds[index];
+                var suffix = count == 1 ? "" : $"Titular{index + 1}";
+                var fault = index == count - 1;
                 object[] Button(string prefix) =>
                     Enumerable.Range(0, fault && DecisionFault == "duplicate" ? 2 : 1).Select(_ => (object)new
                     {
@@ -467,11 +647,24 @@ public sealed class DocuSignTests
                 if (LoseSendResponse) throw new HttpRequestException("Respuesta perdida");
                 data = new { envelopeId = envelope, status = "sent" };
             }
-            else if (path.EndsWith("/recipients")) data = new
+            else if (path.EndsWith("/recipients"))
             {
-                signers = Enumerable.Range(1, count).Select(i => new { recipientId = i.ToString(), status = i == 2 ? SecondStatus : FirstStatus,
-                    signedDateTime = "2026-10-05T18:00:00Z" })
-            };
+                var indices = Enumerable.Range(1, count + (EnvelopeRecipientFault == "extra-signer" ? 1 : 0));
+                if (ReverseEnvelopeRecipients) indices = indices.Reverse();
+                data = new
+                {
+                    signers = indices.Select(i => new
+                    {
+                        recipientId = i == count && EnvelopeRecipientFault == "duplicate-id" ? "1"
+                            : i == count && EnvelopeRecipientFault == "empty-id" ? "" : i.ToString(),
+                        roleName = i == count && EnvelopeRecipientFault == "missing-role" ? ""
+                            : i == count && EnvelopeRecipientFault == "duplicate-role" ? "Titular1"
+                            : count == 1 ? "Cliente" : $"Titular{i}",
+                        status = i switch { 1 => FirstStatus, 2 => SecondStatus, _ => ThirdStatus },
+                        signedDateTime = "2026-10-05T18:00:00Z"
+                    })
+                };
+            }
             else if (path.EndsWith("/documents/combined"))
             { DownloadCalls++; return new(HttpStatusCode.OK) { Content = new ByteArrayContent(Encoding.ASCII.GetBytes(Pdf)) }; }
             else data = new { status = EnvelopeStatus, statusChangedDateTime = "2026-10-05T18:00:00Z", completedDateTime = "2026-10-05T18:00:00Z" };

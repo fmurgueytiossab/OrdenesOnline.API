@@ -12,9 +12,11 @@ public sealed class DocuSignOptions
     public string PrivateKeyPath { get; }
     public Guid IndividualTemplateId { get; }
     public Guid JointTemplateId { get; }
+    public Guid? JointThreeTemplateId { get; }
     public string IndividualRole { get; }
     public string JointFirstRole { get; }
     public string JointSecondRole { get; }
+    public string JointThirdRole { get; }
     public string SignedDocumentsPath { get; }
     public string WebhookHmacSecret { get; }
 
@@ -35,6 +37,19 @@ public sealed class DocuSignOptions
         IndividualRole = Required("IndividualRole");
         JointFirstRole = Required("JointFirstRole");
         JointSecondRole = Required("JointSecondRole");
+        // La tercera plantilla es opcional para conservar las instalaciones de uno/dos firmantes.
+        var thirdTemplate = config["DocuSign:JointThreeTemplateId"]?.Trim();
+        if (!string.IsNullOrEmpty(thirdTemplate))
+        {
+            if (!Guid.TryParse(thirdTemplate, out var templateId) || templateId == Guid.Empty)
+                throw new InvalidOperationException("DocuSign:JointThreeTemplateId debe ser un GUID valido.");
+            JointThreeTemplateId = templateId;
+        }
+        JointThirdRole = string.IsNullOrWhiteSpace(config["DocuSign:JointThirdRole"])
+            ? "Titular3" : config["DocuSign:JointThirdRole"]!.Trim();
+        if (JointThreeTemplateId is not null
+            && new[] { JointFirstRole, JointSecondRole, JointThirdRole }.Distinct(StringComparer.Ordinal).Count() != 3)
+            throw new InvalidOperationException("Las tres funciones de la plantilla mancomunada deben ser distintas.");
         SignedDocumentsPath = Required("SignedDocumentsPath");
         if (!Path.IsPathFullyQualified(SignedDocumentsPath))
             throw new InvalidOperationException("DocuSign:SignedDocumentsPath debe ser una ruta absoluta.");

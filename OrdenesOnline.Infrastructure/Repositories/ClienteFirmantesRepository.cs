@@ -35,10 +35,11 @@ public sealed class ClienteFirmantesRepository(OpersabDbContext context) : IClie
         if (isJointAccount)
         {
             var phones = rawPhones.Select(NormalizePhone).ToArray();
-            if (phones.Length != 2 || phones.Any(p => p is null) || phones[0] == phones[1])
-                return new([], "La cuenta mancomunada necesita exactamente dos celulares validos y distintos en clientes_apoderados.");
+            if (phones.Length is not (2 or 3) || phones.Any(p => p is null)
+                || phones.Distinct(StringComparer.Ordinal).Count() != phones.Length)
+                return new([], "La cuenta mancomunada necesita dos o tres celulares validos y distintos en clientes_apoderados.");
             Array.Sort(phones, StringComparer.Ordinal);
-            return new([new("Titular1", name, phones[0]!), new("Titular2", name, phones[1]!)]);
+            return new(phones.Select((phone, index) => new DocuSignContacto($"Titular{index + 1}", name, phone!)).ToArray());
         }
         var phone = NormalizePhone(clientPhone);
         if (phone is null)

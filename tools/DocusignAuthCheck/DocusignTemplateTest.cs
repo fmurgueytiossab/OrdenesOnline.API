@@ -152,6 +152,12 @@ internal static class DocusignTemplateTest
         if (envelope is null) return 1;
         var status = String(envelope.RootElement, "status");
         Console.WriteLine($"Estado del sobre: {status}");
+        if (envelope.RootElement.TryGetProperty("sender", out var sender) && sender.ValueKind == JsonValueKind.Object)
+        {
+            Console.WriteLine($"Nombre del remitente guardado en el sobre: {JsonSerializer.Serialize(String(sender, "userName"))}");
+            Console.WriteLine($"ID del usuario remitente del sobre: {JsonSerializer.Serialize(String(sender, "userId"))}");
+        }
+        else Console.WriteLine("DocuSign no incluyo el remitente en la respuesta del sobre.");
         Console.WriteLine(status switch
         {
             "completed" => "Todas las acciones requeridas del sobre estan completadas.",

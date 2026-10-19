@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OrdenesOnline.Application.Services;
 using OrdenesOnline.Domain.DTO;
+using OrdenesOnline.Domain.entities;
 
 namespace OrdenesOnline_API.Features.Propuestas;
 
@@ -57,6 +58,34 @@ public sealed class PropuestaClienteController : ControllerBase
                 title: "El usuario autenticado ya no existe.",
                 statusCode: StatusCodes.Status401Unauthorized),
             _ => Ok(result.Page)
+        };
+    }
+
+    [HttpPost("{propuestaId:int:min(1)}/ingresado")]
+    [ProducesResponseType<PropuestaIngresadaResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PropuestaIngresadaResponse>> MarkEntered(
+        int propuestaId, CancellationToken cancellationToken)
+    {
+        var subject = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (!int.TryParse(subject, out var representanteId))
+            return Problem(title: "La identidad autenticada no contiene un usuario válido.",
+                statusCode: StatusCodes.Status401Unauthorized);
+
+        var result = await _seguimientoService.MarkEntered(representanteId, propuestaId, cancellationToken);
+        return result switch
+        {
+            MarcarPropuestaIngresadaStatus.RepresentanteNotFound =>
+                Problem(title: "El usuario autenticado ya no existe.", statusCode: StatusCodes.Status401Unauthorized),
+            MarcarPropuestaIngresadaStatus.NotFound =>
+                Problem(title: "La propuesta no está disponible para este usuario.", statusCode: StatusCodes.Status404NotFound),
+            MarcarPropuestaIngresadaStatus.NotSigned =>
+                Problem(title: "La propuesta aún no está firmada.",
+                    detail: "Solo puedes marcar como ingresada una propuesta con todas las firmas confirmadas por DocuSign.",
+                    statusCode: StatusCodes.Status409Conflict),
+            _ => Ok(new PropuestaIngresadaResponse(propuestaId, "INGRESADO"))
         };
     }
 
@@ -176,6 +205,8 @@ public sealed class PropuestaClienteController : ControllerBase
         };
     }
 }
+
+public sealed record PropuestaIngresadaResponse(int PropuestaId, string Estado);
 
 public sealed record CreatePropuestaClienteResponse(
     bool Success,

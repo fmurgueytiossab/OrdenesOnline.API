@@ -14,7 +14,15 @@ public sealed class DocuSignPropuestasService(IClienteFirmantesRepository contac
     {
         var result = await contacts.GetAsync(cosabcli.Trim(), ct);
         if (result.Error is not null) throw new DocuSignContactException(result.Error);
-        var plan = new DocuSignPreparacion(result.Firmantes.Count == 1 ? options.IndividualTemplateId : options.JointTemplateId, result.Firmantes);
+        var templateId = result.Firmantes.Count switch
+        {
+            1 => options.IndividualTemplateId,
+            2 => options.JointTemplateId,
+            3 => options.JointThreeTemplateId ?? throw new DocuSignContactException(
+                "La cuenta tiene tres titulares. Configure DocuSign:JointThreeTemplateId para enviar su propuesta."),
+            _ => throw new DocuSignContactException("Solo se admiten uno, dos o tres firmantes.")
+        };
+        var plan = new DocuSignPreparacion(templateId, result.Firmantes);
         await client.TemplateSigners(plan, ct);
         return plan;
     }
@@ -27,10 +35,11 @@ public sealed class DocuSignPropuestasService(IClienteFirmantesRepository contac
         {
             var signers = await client.TemplateSigners(plan, ct);
             envelope = await client.CreateDraft(propuesta, request, plan, signers, ct);
-            await repository.RegisterAsync(propuesta.PropuestaId, envelope.Value, options.AccountId, options.Entorno, plan.TemplateId, signers, ct);
+            signers = await client.DraftSigners(envelope.Value, signers, ct);
+            await repository.RegisterAsync(propuesta.PropuestaId, envelope.Value, options.AccountId, plan.TemplateId, signers, ct);
             registered = true;
             await client.Send(envelope.Value, ct);
-            // Connect confirma estados. No escribir 'sent' despues de un webhook 'completed'.
+            await repository.ConfirmSentAsync(propuesta.PropuestaId, envelope.Value, ct);
             return new(envelope, true);
         }
         catch (Exception ex)

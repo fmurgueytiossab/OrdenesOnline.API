@@ -7,7 +7,7 @@ namespace OrdenesOnline.Application.Services;
 
 public sealed class DocuSignArchiveService(DocuSignClient client, DocuSignOptions options)
 {
-    private sealed record Metadata(int PropuestaId, Guid EnvelopeId, Guid AccountId, string Entorno, string Sha256);
+    private sealed record Metadata(int PropuestaId, Guid EnvelopeId, Guid AccountId, string Sha256);
 
     public async Task<DocuSignArchivo> Download(DocuSignSobre sobre, CancellationToken ct)
     {
@@ -23,7 +23,7 @@ public sealed class DocuSignArchiveService(DocuSignClient client, DocuSignOption
         {
             metadata = JsonSerializer.Deserialize<Metadata>(await File.ReadAllTextAsync(metadataPath, ct));
             if (metadata is null || metadata.EnvelopeId != sobre.EnvelopeId || metadata.AccountId != sobre.AccountId
-                || metadata.Entorno != sobre.Entorno || metadata.PropuestaId != sobre.PropuestaId)
+                || metadata.PropuestaId != sobre.PropuestaId)
                 throw new IOException("Conflicto entre archivo y sobre.");
             if (File.Exists(pdf))
             {
@@ -65,7 +65,7 @@ public sealed class DocuSignArchiveService(DocuSignClient client, DocuSignOption
             if (metadata is null)
             {
                 await File.WriteAllTextAsync(temporaryMetadata,
-                    JsonSerializer.Serialize(new Metadata(sobre.PropuestaId, sobre.EnvelopeId, sobre.AccountId, sobre.Entorno, hash)), ct);
+                    JsonSerializer.Serialize(new Metadata(sobre.PropuestaId, sobre.EnvelopeId, sobre.AccountId, hash)), ct);
                 // Metadatos primero para recuperar una interrupcion sin perder la relacion con el sobre.
                 File.Move(temporaryMetadata, metadataPath, false);
             }

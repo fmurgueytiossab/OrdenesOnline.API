@@ -12,20 +12,21 @@ public sealed class FakeDocuSignRepository : IPropuestaDocuSignRepository
     public int ApplyCalls { get; private set; }
     public DocuSignEstado? Applied { get; private set; }
     public IReadOnlyList<DocuSignFirmante> Signers { get; private set; } = [];
-    public Task<long> RegisterAsync(int p, Guid e, Guid a, string env, Guid template, IReadOnlyList<DocuSignFirmante> signers, CancellationToken ct)
+    public Task<long> RegisterAsync(int p, Guid e, Guid a, Guid template, IReadOnlyList<DocuSignFirmante> signers, CancellationToken ct)
     {
         if (FailRegister) throw new InvalidOperationException("SQL no disponible");
         Registered = true; Signers = signers;
         return Task.FromResult(1L);
     }
+    public Task ConfirmSentAsync(int propuestaId, Guid envelopeId, CancellationToken ct) => Task.CompletedTask;
     public Task<bool> HasAsync(int p, CancellationToken ct) => Task.FromResult(HasEnvelope);
-    public Task<DocuSignSobre?> FindAsync(Guid e, Guid a, string env, CancellationToken ct) => Task.FromResult(Found);
+    public Task<DocuSignSobre?> FindAsync(Guid e, Guid a, CancellationToken ct) => Task.FromResult(Found);
     public Task ApplyAsync(DocuSignSobre s, DocuSignEstado e, CancellationToken ct)
     {
         if (FailApply) throw new InvalidOperationException("SQL no disponible");
         ApplyCalls++; Applied = e; return Task.CompletedTask;
     }
-    public Task<IReadOnlyList<DocuSignSobre>> PendingDownloadsAsync(Guid a, string env, CancellationToken ct) =>
+    public Task<IReadOnlyList<DocuSignSobre>> PendingDownloadsAsync(Guid a, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<DocuSignSobre>>([]);
     public Task ArchiveAsync(long id, DocuSignArchivo? archive, string? error, CancellationToken ct) => Task.CompletedTask;
 }

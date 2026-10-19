@@ -133,11 +133,7 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
         var expectedLabels = TemplateLabels(plan.Firmantes.Count > 1);
         foreach (var contact in plan.Firmantes)
         {
-            var role = contact.Funcion switch
-            {
-                "Cliente" => options.IndividualRole, "Titular1" => options.JointFirstRole, "Titular2" => options.JointSecondRole,
-                _ => throw new InvalidOperationException("Funcion de firmante desconocida.")
-            };
+            var role = Role(contact.Funcion);
             var matches = signers.Where(s => String(s, "roleName") == role).ToArray();
             if (matches.Length != 1 || String(matches[0], "clientUserId").Length > 0)
                 throw new InvalidOperationException("Funciones de plantilla incorrectas o firma incrustada.");
@@ -155,11 +151,48 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
                         throw new InvalidOperationException($"Etiqueta de texto inesperada en plantilla: {JsonSerializer.Serialize(label.Length > 100 ? label[..100] + "..." : label)} (funcion {contact.Funcion}). Revise la etiqueta de datos del campo en DocuSign.");
                     labels.Add(label);
                 }
-            result.Add(new(id, contact.Funcion, contact.Nombre, contact.Celular, "created", Identificacion: contact.Identificacion));
+            result.Add(new(id, contact.Funcion, contact.Nombre, contact.Celular, "created"));
         }
         var missing = expectedLabels.Where(l => !labels.Contains(l)).ToArray();
         if (missing.Length > 0)
             throw new InvalidOperationException($"Faltan etiquetas de datos en la plantilla: {string.Join(", ", missing)}.");
+        return result;
+    }
+
+    private string Role(string function) => function switch
+    {
+        "Cliente" => options.IndividualRole,
+        "Titular1" => options.JointFirstRole,
+        "Titular2" => options.JointSecondRole,
+        "Titular3" => options.JointThirdRole,
+        _ => throw new InvalidOperationException("Funcion de firmante desconocida.")
+    };
+
+    public async Task<IReadOnlyList<DocuSignFirmante>> DraftSigners(Guid envelope,
+        IReadOnlyList<DocuSignFirmante> templateSigners, CancellationToken ct)
+    {
+        // Composite templates puede renumerar recipientId al crear el sobre.
+        // Vincular por roleName y guardar los IDs del sobre antes de enviarlo.
+        using var recipients = await GetJson($"/envelopes/{envelope}/recipients", ct);
+        foreach (var property in recipients.RootElement.EnumerateObject())
+            if (property.Name != "signers" && property.Value.ValueKind == JsonValueKind.Array && property.Value.GetArrayLength() > 0)
+                throw new InvalidOperationException("El borrador contiene destinatarios adicionales.");
+        var actual = recipients.RootElement.GetProperty("signers").EnumerateArray().ToArray();
+        if (actual.Length != templateSigners.Count || templateSigners.Count is not (1 or 2 or 3))
+            throw new InvalidOperationException("Cantidad de firmantes incorrecta en el borrador.");
+        var result = new List<DocuSignFirmante>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var signer in templateSigners)
+        {
+            var role = Role(signer.Funcion);
+            var matches = actual.Where(s => String(s, "roleName") == role).ToArray();
+            if (matches.Length != 1 || String(matches[0], "clientUserId").Length > 0)
+                throw new InvalidOperationException("Funciones del borrador incorrectas o firma incrustada.");
+            var id = String(matches[0], "recipientId");
+            if (string.IsNullOrWhiteSpace(id) || id.Length > 64 || !ids.Add(id))
+                throw new InvalidOperationException("Identificadores de firmantes invalidos en el borrador.");
+            result.Add(signer with { RecipientId = id });
+        }
         return result;
     }
 
@@ -199,7 +232,7 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
                     if (!values.TryGetValue(label, out var value)) throw new InvalidOperationException("La plantilla cambio durante la preparacion.");
                     textTabs.Add(new { tabLabel = label, value, locked = "true", required = "false" });
                 }
-            var role = s.Funcion == "Cliente" ? options.IndividualRole : s.Funcion == "Titular1" ? options.JointFirstRole : options.JointSecondRole;
+            var role = Role(s.Funcion);
             // Los celulares de Opersab se normalizan como numeros de Peru (+51) antes de llegar aqui.
             inline.Add(new { roleName = role, recipientId = s.RecipientId, name = s.Nombre, email = "", routingOrder = "1",
                 deliveryMethod = "WhatsApp", phoneNumber = new { countryCode = "51", number = s.Celular[3..] }, tabs = new { textTabs } });

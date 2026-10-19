@@ -2,6 +2,10 @@
 
 API ASP.NET Core para autenticación de representantes, consulta de valores y creación de propuestas.
 
+## Base de datos
+
+El esquema de `DefaultConnection`, su dataset inicial y las dependencias de cifrado/Opersab estan documentados en [Database/README.md](Database/README.md). Para una instalacion nueva usar `Database/Create OrdenesOnline.Api.sql` y despues `Database/Seed OrdenesOnline.Api.sql`.
+
 ## Organización
 
 Los controladores se agrupan por capacidad dentro de `OrdenesOnline-API/Features`:
@@ -68,7 +72,7 @@ Las credenciales que estuvieron versionadas deben rotarse aunque ya no aparezcan
 - Los tokens expiran, pueden revocarse y solo pueden consumirse una vez.
 - El token de revisión relaciona internamente `UserId` y `PropuestaId`; esos identificadores no se incluyen en la URL.
 
-Los tiempos se configuran mediante `ActionTokens:PasswordResetMinutes` y `ActionTokens:ProposalReviewMinutes`. El cambio requerido en la base de datos está documentado en `Database/20260813_action_tokens_and_proposal_status.sql`.
+Los tiempos se configuran mediante `ActionTokens:PasswordResetMinutes` y `ActionTokens:ProposalReviewMinutes`. La tabla `Token` esta incluida en `Database/Create OrdenesOnline.Api.sql`; para instalaciones existentes revisar el esquema antes de aplicar cambios.
 
 En el modelo actual, `Token.UserId` identifica al representante autenticado que creó la propuesta y referencia `UserRepresentante.RepresentanteId`. El cliente demuestra autorización mediante la posesión del enlace enviado a su correo. Si posteriormente los clientes tienen una cuenta autenticada propia, este campo debe relacionarse con el identificador real del cliente y el backend debe comparar esa identidad; esa comparación no debe delegarse al frontend.
 

@@ -114,6 +114,12 @@ try
             StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine("CUENTA OK: el usuario tiene acceso al Account ID indicado.");
+            var profileName = info.RootElement.TryGetProperty("name", out var nameValue)
+                && nameValue.ValueKind == JsonValueKind.String ? nameValue.GetString() : null;
+            var accountName = account.TryGetProperty("account_name", out var accountValue)
+                && accountValue.ValueKind == JsonValueKind.String ? accountValue.GetString() : null;
+            Console.WriteLine($"Nombre del usuario en OAuth/userinfo: {JsonSerializer.Serialize(profileName)}");
+            Console.WriteLine($"Nombre de la cuenta en OAuth/userinfo: {JsonSerializer.Serialize(accountName)}");
             if (args.Length != 0)
             {
                 stage = "prueba de plantilla y envio DocuSign";

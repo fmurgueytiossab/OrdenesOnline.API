@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OrdenesOnline.Domain.DTO;
 using OrdenesOnline.Domain.entities;
 
@@ -26,11 +26,12 @@ namespace OrdenesOnline.Infrastructure.Persistence
 
             modelBuilder.Entity<ActionToken>(entity =>
             {
-                entity.ToTable("Token");
+                entity.ToTable("Token", table => table.HasCheckConstraint(
+                    "CK_Token_Type", "[Type] IN ('proposal_review','password_reset')"));
                 entity.HasIndex(token => token.TokenHash).IsUnique();
                 entity.HasIndex(token => new { token.UserId, token.Type });
-                entity.Property(token => token.TokenHash).HasMaxLength(256).IsRequired();
-                entity.Property(token => token.Type).HasMaxLength(20).IsRequired();
+                entity.Property(token => token.TokenHash).HasMaxLength(64).IsUnicode(false).IsFixedLength().IsRequired();
+                entity.Property(token => token.Type).HasMaxLength(20).IsUnicode(false).IsRequired();
                 entity.Property(token => token.CreatedAt).HasPrecision(3);
                 entity.Property(token => token.ExpiresAt).HasPrecision(3);
             });

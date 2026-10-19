@@ -13,7 +13,7 @@ public sealed class ActionToken
 
     public int? PropuestaId { get; set; }
 
-    [StringLength(256)]
+    [StringLength(64)]
     public string TokenHash { get; set; } = string.Empty;
 
     [StringLength(20)]

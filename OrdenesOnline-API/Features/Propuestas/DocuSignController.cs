@@ -42,7 +42,7 @@ public sealed class DocuSignController(DocuSignOptions options, DocuSignClient c
         catch (Exception ex) when (ex is JsonException or InvalidOperationException) { return BadRequest(); }
         try
         {
-            var tracked = await repository.FindAsync(envelopeId, options.AccountId, options.Entorno, ct);
+            var tracked = await repository.FindAsync(envelopeId, options.AccountId, ct);
             if (tracked is null) return Ok();
             // Consultar el estado actual evita aceptar mensajes atrasados, duplicados o la firma de solo un titular.
             var state = await client.Status(tracked, ct);

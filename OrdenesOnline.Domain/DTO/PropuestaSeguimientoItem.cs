@@ -14,7 +14,8 @@ public sealed record PropuestaSeguimientoItem(
     decimal CantidadPendiente,
     decimal? Precio,
     string Estado,
-    string Mercado);
+    string Mercado,
+    bool PuedeMarcarIngresado = false);
 
 public sealed record PropuestaSeguimientoPage(
     IReadOnlyList<PropuestaSeguimientoItem> Items,
