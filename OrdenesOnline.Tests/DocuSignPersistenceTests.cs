@@ -12,7 +12,7 @@ public sealed class DocuSignPersistenceTests
     // Opt-in: usa exclusivamente LocalDB y una base temporal creada por esta prueba.
     // PowerShell: $env:ORDENESONLINE_RUN_LOCALDB_TESTS='1'; dotnet test ... --no-restore
     [LocalDbFact]
-    public async Task RejectedEnvelopesNeedNoDownloadAndTerminalStatesSurviveRetries()
+    public async Task EnvelopeTransitionsPersistWithoutDownloadMetadata()
     {
         var database = "OrdenesOnline_DocuSignTest_" + Guid.NewGuid().ToString("N");
         var settings = new SqlConnectionStringBuilder
@@ -47,48 +47,34 @@ public sealed class DocuSignPersistenceTests
         var proposalId = 0;
         foreach (var terminal in new[] { "declined", "voided" })
         foreach (var count in new[] { 1, 2, 3 })
-        foreach (var previousDownload in new[] { "Pendiente", "Error" })
         {
             var tracked = await Register(++proposalId, count);
-            await Execute(connection, $"UPDATE dbo.PropuestaDocuSign SET EstadoDescarga='{previousDownload}' WHERE PropuestaDocuSignId={tracked.Id};");
             var signers = tracked.Firmantes.Select((s, i) => s with
             {
-                Estado = terminal == "declined" && i == (previousDownload == "Error" ? count - 1 : 0) ? "declined" : "completed"
+                Estado = terminal == "declined" && i == (count - 1) ? "declined" : "completed"
             }).ToArray();
             var state = new DocuSignEstado(terminal, date, null, signers);
             await repository.ApplyAsync(tracked, state, default);
-            await AssertStored(tracked.Id, terminal, "NoAplica", "Cancelado", 0);
+            await AssertStored(tracked.Id, terminal, "Cancelado");
             await repository.ApplyAsync(tracked, state, default); // notificacion repetida
-            await repository.ApplyAsync(tracked, state with { Estado = "sent", FechaEstadoUtc = date.AddMinutes(-1) }, default);
+            await repository.ApplyAsync(tracked, state with { Estado = "sent", FechaCambioEstadoUtc = date.AddMinutes(-1) }, default);
             await repository.ApplyAsync(tracked, state with // consulta posterior no cambia un estado terminal
             {
-                Estado = "completed", FechaEstadoUtc = date.AddMinutes(1),
+                Estado = "completed", FechaCambioEstadoUtc = date.AddMinutes(1),
                 Firmantes = signers.Select(s => s with { Estado = "completed" }).ToArray()
             }, default);
-            await repository.ArchiveAsync(tracked.Id, null, "No debe registrarse", default);
-            await AssertStored(tracked.Id, terminal, "NoAplica", "Cancelado", 0);
+            await AssertStored(tracked.Id, terminal, "Cancelado");
         }
-        Assert.Empty(await repository.PendingDownloadsAsync(account, default));
 
         var approved = await Register(++proposalId, 2);
+        Assert.Equal(approved.Id, (await repository.FindByProposalAsync(approved.PropuestaId, account, default))?.Id);
+        Assert.Null(await repository.FindByProposalAsync(approved.PropuestaId, Guid.NewGuid(), default));
         var partial = approved.Firmantes.Select((s, i) => s with { Estado = i == 0 ? "completed" : "sent" }).ToArray();
         await repository.ApplyAsync(approved, new("sent", date, null, partial), default);
-        await AssertStored(approved.Id, "sent", "Pendiente", "Pendiente", 0);
-        Assert.Empty(await repository.PendingDownloadsAsync(account, default));
+        await AssertStored(approved.Id, "sent", "Pendiente");
         var complete = partial.Select(s => s with { Estado = "completed", FechaFirmaUtc = date.AddMinutes(1) }).ToArray();
         await repository.ApplyAsync(approved, new("completed", date.AddMinutes(1), date.AddMinutes(1), complete), default);
-        await AssertStored(approved.Id, "completed", "Pendiente", "Aceptado", 0);
-        Assert.Equal(approved.Id, Assert.Single(await repository.PendingDownloadsAsync(account, default)).Id);
-        await repository.ArchiveAsync(approved.Id, null, "Error simulado", default);
-        await AssertStored(approved.Id, "completed", "Error", "Aceptado", 1);
-        Assert.Single(await repository.PendingDownloadsAsync(account, default));
-        await repository.ArchiveAsync(approved.Id, new("prueba.pdf", new string('A', 64)), null, default);
-        await repository.ArchiveAsync(approved.Id, null, "No sobrescribir archivo descargado", default);
-        await AssertStored(approved.Id, "completed", "Descargado", "Aceptado", 2);
-        Assert.Empty(await repository.PendingDownloadsAsync(account, default));
-        await Assert.ThrowsAsync<SqlException>(() => Execute(connection,
-            $"UPDATE dbo.PropuestaDocuSign SET EstadoDescarga='NoAplica' WHERE PropuestaDocuSignId={approved.Id};"));
-
+        await AssertStored(approved.Id, "completed", "Aceptado");
         async Task<DocuSignSobre> Register(int id, int count)
         {
             await DatabaseTestScripts.InsertProposal(connection, id);
@@ -99,17 +85,17 @@ public sealed class DocuSignPersistenceTests
             return (await repository.FindAsync(envelope, account, default))!;
         }
 
-        async Task AssertStored(long id, string envelope, string download, string proposal, int attempts)
+        async Task AssertStored(long id, string envelope, string proposal)
         {
             await using var command = new SqlCommand($"""
-                SELECT d.EstadoSobre,d.EstadoDescarga,p.Estado,d.IntentosDescarga
+                SELECT d.EstadoSobre,p.Estado,d.FechaCambioEstadoUtc
                 FROM dbo.PropuestaDocuSign d JOIN dbo.propuesta p ON p.PropuestaId=d.PropuestaId
                 WHERE d.PropuestaDocuSignId={id};
                 """, connection);
             await using var reader = await command.ExecuteReaderAsync();
             Assert.True(await reader.ReadAsync());
-            Assert.Equal(envelope, reader.GetString(0)); Assert.Equal(download, reader.GetString(1));
-            Assert.Equal(proposal, reader.GetString(2)); Assert.Equal(attempts, reader.GetInt32(3));
+            Assert.Equal(envelope, reader.GetString(0));
+            Assert.Equal(proposal, reader.GetString(1)); Assert.False(reader.IsDBNull(2));
         }
     }
 

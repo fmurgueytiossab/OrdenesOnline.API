@@ -35,51 +35,16 @@ El estado `completed` indica que todas las acciones requeridas terminaron.
 Ante un timeout de envio, revisa Acuerdos en DocuSign antes de repetir: el sobre
 puede haberse creado. La utilidad no reintenta automaticamente el POST.
 
-## Archivo firmado
+## Descarga directa desde el API
 
-Descarga un sobre existente si su estado es `completed`:
-
-```powershell
-dotnet run --project .\tools\DocusignAuthCheck\DocusignAuthCheck.csproj -- --download ID_DEL_SOBRE NUMERO_PROPUESTA
-```
-
-Para esperar y descargar automaticamente al completarse, deja este comando abierto:
-
-```powershell
-dotnet run --project .\tools\DocusignAuthCheck\DocusignAuthCheck.csproj -- --watch ID_DEL_SOBRE NUMERO_PROPUESTA
-```
-
-Consulta inmediatamente y luego cada 15 minutos, renovando la autenticacion.
-No ejecuta consultas continuas en intervalos menores, conforme a las reglas de
-polling de DocuSign. Ctrl+C detiene la espera. Puedes reanudar con el mismo comando.
-Los sobres rechazados o anulados no se descargan.
-
-Por defecto guarda `NUMERO_PROPUESTA.pdf` y `NUMERO_PROPUESTA.docusign.json` en
-`C:\Users\Fernando\Music\docusign`. Solicita el PDF combinado con el certificado
-de finalizacion (`documents/combined?certificate=true`). El JSON contiene relacion,
-estado, fechas y SHA-256; no credenciales. La validacion de formato solo comprueba
-la cabecera PDF, no la validez criptografica de las firmas.
-
-La ruta se puede cambiar para esta terminal:
-
-```powershell
-$env:DOCUSIGN_SIGNED_DOCUMENTS_PATH = 'D:\DocumentosFirmados'
-```
-
-No sobrescribe PDFs existentes. Si el mismo sobre ya esta archivado, verifica la
-huella y reutiliza el archivo. Un numero ligado a otro sobre produce conflicto.
-La prueba no genera propuestas en SQL: el numero se proporciona manualmente.
-Cuando se integre el servicio se usara el `PropuestaId` generado por la base.
-El seguimiento actual funciona mientras este proceso esta abierto; el proceso
-del servidor se conectara posteriormente a DocuSign Connect con reintentos de archivo.
+La utilidad conserva autenticacion, prueba de envio y consulta de estado.
+Se retiraron --download y --watch y el archivado de PDF/metadatos en disco.
+Para descargar usar GET /api/Propuesta/{propuestaId}/documento con el JWT del
+representante y el backend actualizado. La descarga depende de DocuSign y solo
+se permite cuando el sobre vigente tiene todas las firmas completas.
 
 Comprobaciones locales con un servidor simulado, sin credenciales ni envios:
 
 ```powershell
 dotnet run --project .\tools\DocusignTemplateTestChecks\DocusignTemplateTestChecks.csproj
 ```
-
-Esta utilidad aun no reemplaza el correo de `PropuestaClienteService`, no lee
-clientes de la base de datos ni actualiza propuestas. La integracion del servicio,
-la persistencia de la relacion propuesta/sobre y la recepcion segura de eventos
-de DocuSign son el siguiente paso despues de verificar ambos casos en demo.

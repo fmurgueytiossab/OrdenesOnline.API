@@ -98,15 +98,7 @@ BEGIN TRY
             CONSTRAINT DF_PropuestaDocuSign_FechaRegistroUtc DEFAULT (SYSUTCDATETIME()),
         FechaEnvioUtc datetime2(3) NULL,
         FechaCompletadoUtc datetime2(3) NULL,
-        FechaEstadoUtc datetime2(3) NULL,
-        EstadoDescarga varchar(20) NOT NULL
-            CONSTRAINT DF_PropuestaDocuSign_EstadoDescarga DEFAULT ('Pendiente'),
-        UbicacionArchivo nvarchar(1000) NULL,
-        Sha256Archivo char(64) NULL,
-        FechaDescargaUtc datetime2(3) NULL,
-        IntentosDescarga int NOT NULL
-            CONSTRAINT DF_PropuestaDocuSign_IntentosDescarga DEFAULT (0),
-        UltimoError nvarchar(2000) NULL,
+        FechaCambioEstadoUtc datetime2(3) NULL,
         VersionFila rowversion NOT NULL,
 
         CONSTRAINT PK_PropuestaDocuSign
@@ -114,22 +106,7 @@ BEGIN TRY
         CONSTRAINT FK_PropuestaDocuSign_Propuesta
             FOREIGN KEY (PropuestaId) REFERENCES dbo.propuesta (PropuestaId),
         CONSTRAINT CK_PropuestaDocuSign_FirmasRequeridas
-            CHECK (FirmasRequeridas IN (1, 2, 3)),
-        CONSTRAINT CK_PropuestaDocuSign_IntentosDescarga
-            CHECK (IntentosDescarga >= 0),
-        CONSTRAINT CK_PropuestaDocuSign_EstadoDescarga
-            CHECK (EstadoDescarga IN ('Pendiente', 'Descargado', 'Error', 'NoAplica')),
-        CONSTRAINT CK_PropuestaDocuSign_NoAplica
-            CHECK (EstadoDescarga <> 'NoAplica' OR EstadoSobre IN ('declined', 'voided')),
-        CONSTRAINT CK_PropuestaDocuSign_Sha256
-            CHECK (Sha256Archivo IS NULL OR
-                (LEN(Sha256Archivo) = 64 AND
-                 Sha256Archivo COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9A-Fa-f]%')),
-        CONSTRAINT CK_PropuestaDocuSign_Descargado
-            CHECK (EstadoDescarga <> 'Descargado' OR
-                (EstadoSobre = 'completed' AND
-                 UbicacionArchivo IS NOT NULL AND LEN(LTRIM(RTRIM(UbicacionArchivo))) > 0 AND
-                 Sha256Archivo IS NOT NULL AND FechaDescargaUtc IS NOT NULL))
+            CHECK (FirmasRequeridas IN (1, 2, 3))
     );
 
     CREATE UNIQUE INDEX UX_PropuestaDocuSign_Sobre
@@ -141,10 +118,6 @@ BEGIN TRY
 
     CREATE INDEX IX_PropuestaDocuSign_Historial
         ON dbo.PropuestaDocuSign (PropuestaId, FechaRegistroUtc DESC);
-
-    CREATE INDEX IX_PropuestaDocuSign_Descargas
-        ON dbo.PropuestaDocuSign (EstadoSobre, EstadoDescarga, FechaEstadoUtc)
-        INCLUDE (PropuestaId, EnvelopeId, AccountId, IntentosDescarga);
 
     CREATE TABLE dbo.PropuestaDocuSignFirmante
     (

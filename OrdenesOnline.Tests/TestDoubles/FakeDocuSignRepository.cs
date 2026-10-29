@@ -26,7 +26,10 @@ public sealed class FakeDocuSignRepository : IPropuestaDocuSignRepository
         if (FailApply) throw new InvalidOperationException("SQL no disponible");
         ApplyCalls++; Applied = e; return Task.CompletedTask;
     }
-    public Task<IReadOnlyList<DocuSignSobre>> PendingDownloadsAsync(Guid a, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<DocuSignSobre>>([]);
-    public Task ArchiveAsync(long id, DocuSignArchivo? archive, string? error, CancellationToken ct) => Task.CompletedTask;
+    public int FindByProposalCalls { get; private set; }
+    public Task<DocuSignSobre?> FindByProposalAsync(int p, Guid a, CancellationToken ct)
+    {
+        FindByProposalCalls++;
+        return Task.FromResult(Found is { } s && s.PropuestaId == p && s.AccountId == a ? s : null);
+    }
 }

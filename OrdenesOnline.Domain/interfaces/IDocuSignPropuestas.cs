@@ -11,9 +11,8 @@ public sealed record DocuSignFirmante(string RecipientId, string Funcion, string
     string Estado, DateTime? FechaFirmaUtc = null);
 public sealed record DocuSignSobre(long Id, int PropuestaId, Guid EnvelopeId, Guid AccountId,
     string Estado, int FirmasRequeridas, IReadOnlyList<DocuSignFirmante> Firmantes);
-public sealed record DocuSignEstado(string Estado, DateTime FechaEstadoUtc, DateTime? CompletadoUtc,
+public sealed record DocuSignEstado(string Estado, DateTime FechaCambioEstadoUtc, DateTime? CompletadoUtc,
     IReadOnlyList<DocuSignFirmante> Firmantes, DateTime? FechaEnvioUtc = null);
-public sealed record DocuSignArchivo(string Ruta, string Sha256);
 
 public interface IClienteFirmantesRepository
 {
@@ -35,6 +34,5 @@ public interface IPropuestaDocuSignRepository
     Task<bool> HasAsync(int propuestaId, CancellationToken ct);
     Task<DocuSignSobre?> FindAsync(Guid envelopeId, Guid accountId, CancellationToken ct);
     Task ApplyAsync(DocuSignSobre sobre, DocuSignEstado estado, CancellationToken ct);
-    Task<IReadOnlyList<DocuSignSobre>> PendingDownloadsAsync(Guid accountId, CancellationToken ct);
-    Task ArchiveAsync(long id, DocuSignArchivo? archivo, string? error, CancellationToken ct);
+    Task<DocuSignSobre?> FindByProposalAsync(int propuestaId, Guid accountId, CancellationToken ct);
 }

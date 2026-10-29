@@ -86,3 +86,32 @@ dotnet build OrdenesOnline-API/OrdenesOnline-API.slnx --no-restore
 dotnet test OrdenesOnline.Tests/OrdenesOnline.Tests.csproj --no-restore
 dotnet list OrdenesOnline-API/OrdenesOnline-API.slnx package --vulnerable --include-transitive
 ```
+
+## PDF firmado de DocuSign
+
+GET /api/Propuesta/{propuestaId}/documento requiere Authorization: Bearer <JWT>.
+Devuelve application/pdf con Content-Disposition: attachment y nombre
+Propuesta-{propuestaId}.pdf. El cliente pertenece a la cartera actual del
+representante, el sobre debe ser el vigente de la cuenta configurada, estar
+completed y tener todas las firmas completas. Se consulta tambien el estado
+actual en DocuSign antes de obtener documents/combined?certificate=true.
+Referencia del proveedor: https://www.docusign.com/blog/developers/dsdev-common-api-tasks-downloading-documents
+
+La solicitud mantiene el PDF solo en memoria (limite 50 MB y 45 segundos para
+la descarga), valida su cabecera y lo devuelve al navegador sin guardarlo en
+disco ni actualizar tablas. Las respuestas indican no almacenar en cache.
+Cada clic depende de la disponibilidad y retencion del documento en DocuSign.
+
+- 401: JWT ausente/invalido o representante inexistente.
+- 404: propuesta/documento no encontrado o fuera de la cartera autorizada.
+- 409: sobre sin completar o sin todas las firmas.
+- 502: fallo de DocuSign, PDF invalido, limite de tamano o timeout de descarga.
+
+El frontend debe solicitar un Blob enviando el JWT y disparar la descarga con
+un enlace temporal; abrir la URL en una pestaña no agrega el Bearer token.
+No se modifico el frontend en este cambio.
+
+Se retiro el archivado automatico, sus columnas y SignedDocumentsPath.
+El esquema final esta consolidado en Database/Create OrdenesOnline.Api.sql,
+seguido de Database/Seed OrdenesOnline.Api.sql para una instalacion nueva.
+El Create requiere una base vacia y no actualiza bases existentes; ver Database/README.md.

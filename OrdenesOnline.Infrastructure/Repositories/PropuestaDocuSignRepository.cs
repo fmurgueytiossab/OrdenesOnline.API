@@ -57,7 +57,7 @@ public sealed class PropuestaDocuSignRepository(AppDbContext context) : IPropues
     public async Task ConfirmSentAsync(int propuestaId, Guid envelopeId, CancellationToken ct)
     {
         // Send ya fue aceptado por DocuSign. No sobrescribir un webhook mas avanzado
-        // ni inventar FechaEstadoUtc, que pertenece al estado informado por el proveedor.
+        // ni inventar FechaCambioEstadoUtc, que pertenece al estado informado por el proveedor.
         await using var command = Command(await Connection(ct), """
             UPDATE dbo.PropuestaDocuSign
             SET EstadoSobre=CASE WHEN EstadoSobre='created' THEN 'sent' ELSE EstadoSobre END,
@@ -110,15 +110,14 @@ public sealed class PropuestaDocuSignRepository(AppDbContext context) : IPropues
         // Bloqueo por sobre, eventos duplicados y consultas concurrentes no hacen retroceder un estado terminal.
         await using var update = Command(connection, """
             UPDATE dbo.PropuestaDocuSign WITH (UPDLOCK,HOLDLOCK)
-            SET EstadoSobre=@state,FechaEstadoUtc=@date,
-                EstadoDescarga=CASE WHEN @state IN ('declined','voided') THEN 'NoAplica' ELSE EstadoDescarga END,
+            SET EstadoSobre=@state,FechaCambioEstadoUtc=@date,
                 FechaEnvioUtc=COALESCE(FechaEnvioUtc,@sent),
                 FechaCompletadoUtc=CASE WHEN @state='completed' THEN COALESCE(@completed,@date) ELSE FechaCompletadoUtc END
             WHERE PropuestaDocuSignId=@id AND EsVigente=1
-              AND (FechaEstadoUtc IS NULL OR FechaEstadoUtc<=@date)
+              AND (FechaCambioEstadoUtc IS NULL OR FechaCambioEstadoUtc<=@date)
               AND (EstadoSobre='created' OR @state<>'created')
               AND (EstadoSobre NOT IN ('completed','declined','voided') OR EstadoSobre=@state);
-            """, transaction, ("@id", sobre.Id), ("@state", estado.Estado), ("@date", estado.FechaEstadoUtc),
+            """, transaction, ("@id", sobre.Id), ("@state", estado.Estado), ("@date", estado.FechaCambioEstadoUtc),
             ("@completed", estado.CompletadoUtc), ("@sent", estado.FechaEnvioUtc));
         if (await update.ExecuteNonQueryAsync(ct) == 0) { await transaction.CommitAsync(ct); return; }
         foreach (var s in estado.Firmantes)
@@ -147,32 +146,13 @@ public sealed class PropuestaDocuSignRepository(AppDbContext context) : IPropues
         await transaction.CommitAsync(ct);
     }
 
-    public async Task<IReadOnlyList<DocuSignSobre>> PendingDownloadsAsync(Guid accountId, CancellationToken ct)
-    {
-        var connection = await Connection(ct);
-        var ids = new List<Guid>();
-        await using var command = Command(connection, """
-            SELECT TOP(20) EnvelopeId FROM dbo.PropuestaDocuSign
-            WHERE AccountId=@account AND EsVigente=1 AND EstadoSobre='completed'
-              AND EstadoDescarga IN ('Pendiente','Error') AND IntentosDescarga<10 ORDER BY IntentosDescarga,PropuestaDocuSignId;
-            """, null, ("@account", accountId));
-        await using (var reader = await command.ExecuteReaderAsync(ct))
-            while (await reader.ReadAsync(ct)) ids.Add(reader.GetGuid(0));
-        var result = new List<DocuSignSobre>();
-        foreach (var id in ids)
-            if (await FindAsync(id, accountId, ct) is { } item) result.Add(item);
-        return result;
-    }
-
-    public async Task ArchiveAsync(long id, DocuSignArchivo? archivo, string? error, CancellationToken ct)
+    public async Task<DocuSignSobre?> FindByProposalAsync(int propuestaId, Guid accountId, CancellationToken ct)
     {
         await using var command = Command(await Connection(ct), """
-            UPDATE dbo.PropuestaDocuSign SET IntentosDescarga=IntentosDescarga+1,
-              EstadoDescarga=@state,UbicacionArchivo=@path,Sha256Archivo=@hash,
-              FechaDescargaUtc=CASE WHEN @state='Descargado' THEN SYSUTCDATETIME() ELSE NULL END,UltimoError=@error
-            WHERE PropuestaDocuSignId=@id AND EsVigente=1 AND EstadoSobre='completed' AND EstadoDescarga IN ('Pendiente','Error');
-            """, null, ("@id", id), ("@state", archivo is null ? "Error" : "Descargado"),
-            ("@path", archivo?.Ruta), ("@hash", archivo?.Sha256), ("@error", error));
-        await command.ExecuteNonQueryAsync(ct);
+            SELECT EnvelopeId FROM dbo.PropuestaDocuSign
+            WHERE PropuestaId=@id AND AccountId=@account AND EsVigente=1;
+            """, null, ("@id", propuestaId), ("@account", accountId));
+        var envelope = await command.ExecuteScalarAsync(ct);
+        return envelope is Guid id ? await FindAsync(id, accountId, ct) : null;
     }
 }

@@ -126,8 +126,7 @@ builder.Services.AddSingleton(sp => new DocuSignClient(
 builder.Services.AddScoped<IClienteFirmantesRepository, ClienteFirmantesRepository>();
 builder.Services.AddScoped<IPropuestaDocuSignRepository, PropuestaDocuSignRepository>();
 builder.Services.AddScoped<IDocuSignPropuestas, DocuSignPropuestasService>();
-builder.Services.AddScoped<DocuSignArchiveService>();
-builder.Services.AddHostedService<DocuSignDownloadWorker>();
+builder.Services.AddScoped<DocuSignDocumentoService>();
 builder.Services.AddScoped<IPropuestaSeguimientoRepository, PropuestaSeguimientoRepository>();
 builder.Services.AddScoped<PropuestaSeguimientoService>();
 builder.Services.AddScoped<IActionTokenRepository, ActionTokenRepository>();

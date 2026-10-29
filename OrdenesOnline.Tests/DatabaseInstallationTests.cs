@@ -31,6 +31,15 @@ public sealed class DatabaseInstallationTests
             var create = await DatabaseTestScripts.ReadCreate();
             await Execute(connection, create);
             Assert.Equal(6, await Scalar(connection, "SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped=0;"));
+            Assert.Equal(1, await Scalar(connection, """
+                SELECT COUNT(*) FROM sys.columns
+                WHERE object_id=OBJECT_ID(N'dbo.PropuestaDocuSign') AND name=N'FechaCambioEstadoUtc';
+                """));
+            Assert.Equal(0, await Scalar(connection, """
+                SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.PropuestaDocuSign')
+                    AND name IN (N'FechaEstadoUtc',N'EstadoDescarga',N'UbicacionArchivo',N'Sha256Archivo',
+                        N'FechaDescargaUtc',N'IntentosDescarga',N'UltimoError');
+                """));
             Assert.Equal(5, await Scalar(connection, "SELECT COUNT(*) FROM sys.procedures WHERE is_ms_shipped=0;"));
             Assert.Equal(0, await Scalar(connection, "SELECT COUNT(*) FROM sys.symmetric_keys WHERE name='DATAWEB_KEY';"));
             Assert.Equal(2, await Scalar(connection, """

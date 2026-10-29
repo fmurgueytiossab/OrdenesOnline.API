@@ -7,6 +7,5 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../DocusignAuthCheck/DocusignTemplateTest.cs" Link="DocusignTemplateTest.cs" />
-    <Compile Include="../DocusignAuthCheck/DocusignSignedDocument.cs" Link="DocusignSignedDocument.cs" />
   </ItemGroup>
 </Project>

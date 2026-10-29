@@ -486,57 +486,147 @@ public sealed class DocuSignTests
         Assert.Equal("sent", pending.Firmantes[1].Estado);
     }
 
-    [Fact]
-    public async Task Archive_PendingAndInvalidPdfDoNotProduceSignedFile()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Download_ReturnsPdfForAuthorizedClientWithoutCreatingFilesOrUpdatingSql(int count)
+    {
+        using var fixture = new Fixture(count);
+        var repository = new FakeDocuSignRepository { Found = fixture.Completed() };
+        var controller = DocumentoController(fixture, repository);
+        var filesBefore = Directory.GetFiles(fixture.Directory);
+        var file = Assert.IsType<FileContentResult>(await controller.Download(123, default));
+        Assert.Equal("application/pdf", file.ContentType);
+        Assert.Equal("Propuesta-123.pdf", file.FileDownloadName);
+        Assert.Equal(fixture.Handler.Pdf, Encoding.ASCII.GetString(file.FileContents));
+        Assert.Equal(0, repository.ApplyCalls);
+        Assert.Equal(filesBefore, Directory.GetFiles(fixture.Directory));
+        Assert.IsType<FileContentResult>(await controller.Download(123, default));
+        Assert.Equal(2, fixture.Handler.DownloadCalls); // Cada clic consulta al proveedor; no hay cache local.
+    }
+
+    [Theory]
+    [InlineData(false, "OTRO", 404)]
+    [InlineData(true, "C001", 401)]
+    public async Task Download_EnforcesRepresentativeClientScopeBeforeCallingDocuSign(bool missingRepresentative,
+        string client, int status)
     {
         using var fixture = new Fixture(1);
-        var archive = new DocuSignArchiveService(fixture.Client, fixture.Options);
-        fixture.Handler.EnvelopeStatus = "sent";
-        await Assert.ThrowsAsync<InvalidOperationException>(() => archive.Download(fixture.Tracked(), default));
-        Assert.Equal(0, fixture.Handler.DownloadCalls);
-        fixture.Handler.EnvelopeStatus = "completed";
-        fixture.Handler.Pdf = "<html>error</html>";
-        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
-        Assert.False(File.Exists(Path.Combine(fixture.Directory, "123.pdf")));
+        var repository = new FakeDocuSignRepository { Found = fixture.Completed() };
+        var controller = DocumentoController(fixture, repository,
+            new FakeRepresentanteClientScopeRepository(!missingRepresentative, clientCodes: [client]));
+        var response = Assert.IsType<ObjectResult>(await controller.Download(123, default));
+        Assert.Equal(status, response.StatusCode);
+        Assert.Equal(0, repository.FindByProposalCalls);
+        Assert.Equal(0, fixture.Handler.RequestCalls);
     }
 
     [Fact]
-    public async Task Archive_RetryVerifiesExistingFileAndRecoversInterruptedPublication()
+    public async Task Download_MissingIdentityDoesNotReadProposalOrProvider()
+    {
+        using var fixture = new Fixture(1);
+        var repository = new FakeDocuSignRepository();
+        var controller = DocumentoController(fixture, repository);
+        controller.HttpContext.User = new();
+        Assert.Equal(401, Assert.IsType<ObjectResult>(await controller.Download(123, default)).StatusCode);
+        Assert.Equal(0, repository.FindByProposalCalls);
+        Assert.Equal(0, fixture.Handler.RequestCalls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Download_MissingOrOtherAccountEnvelopeReturns404(bool otherAccount)
+    {
+        using var fixture = new Fixture(1);
+        var repository = new FakeDocuSignRepository
+        {
+            Found = otherAccount ? fixture.Completed() with { AccountId = Guid.NewGuid() } : null
+        };
+        Assert.Equal(404, Assert.IsType<ObjectResult>(await DocumentoController(fixture, repository)
+            .Download(123, default)).StatusCode);
+        Assert.Equal(0, fixture.Handler.RequestCalls);
+    }
+
+    [Theory]
+    [InlineData("sent")]
+    [InlineData("declined")]
+    [InlineData("voided")]
+    public async Task Download_RejectsNonCompletedLocalEnvelope(string state)
     {
         using var fixture = new Fixture(2);
-        var archive = new DocuSignArchiveService(fixture.Client, fixture.Options);
-        var first = await archive.Download(fixture.Tracked(), default);
-        Assert.Equal("123.pdf", Path.GetFileName(first.Ruta));
-        Assert.Equal(first, await archive.Download(fixture.Tracked(), default));
-        Assert.Equal(1, fixture.Handler.DownloadCalls);
-        File.Delete(first.Ruta); // simula metadatos publicados y proceso interrumpido antes del PDF
-        Assert.Equal(first, await archive.Download(fixture.Tracked(), default));
-        Assert.Equal(2, fixture.Handler.DownloadCalls);
-        await File.WriteAllTextAsync(first.Ruta, "%PDF-modificado");
-        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
+        var repository = new FakeDocuSignRepository { Found = fixture.Completed() with { Estado = state } };
+        Assert.Equal(409, Assert.IsType<ObjectResult>(await DocumentoController(fixture, repository)
+            .Download(123, default)).StatusCode);
+        Assert.Equal(0, fixture.Handler.RequestCalls);
     }
 
     [Fact]
-    public async Task Archive_LegacyMetadataWithEnvironmentStillValidatesAccountAndEnvelope()
+    public async Task Download_RequiresAllLocalAndRemoteSignatures()
+    {
+        using var fixture = new Fixture(3);
+        var repository = new FakeDocuSignRepository { Found = fixture.Tracked() };
+        var controller = DocumentoController(fixture, repository);
+        Assert.Equal(409, Assert.IsType<ObjectResult>(await controller.Download(123, default)).StatusCode);
+        Assert.Equal(0, fixture.Handler.RequestCalls);
+        repository.Found = fixture.Completed();
+        fixture.Handler.EnvelopeStatus = "sent"; fixture.Handler.ThirdStatus = "sent";
+        Assert.Equal(409, Assert.IsType<ObjectResult>(await controller.Download(123, default)).StatusCode);
+        fixture.Handler.EnvelopeStatus = "completed";
+        Assert.Equal(502, Assert.IsType<ObjectResult>(await controller.Download(123, default)).StatusCode);
+        Assert.Equal(0, fixture.Handler.DownloadCalls);
+    }
+
+    [Theory]
+    [InlineData("invalid-pdf")]
+    [InlineData("http-error")]
+    [InlineData("oversized")]
+    [InlineData("chunked-oversized")]
+    [InlineData("timeout")]
+    public async Task Download_ProviderFailureDoesNotReturnAnAttachment(string failure)
     {
         using var fixture = new Fixture(1);
-        var archive = new DocuSignArchiveService(fixture.Client, fixture.Options);
-        var first = await archive.Download(fixture.Tracked(), default);
-        var path = Path.Combine(fixture.Directory, "123.docusign.json");
-        var metadata = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
-        Assert.False(metadata.ContainsKey("Entorno"));
-        metadata["Entorno"] = "Desarrollo"; // metadatos de una version anterior
-        await File.WriteAllTextAsync(path, metadata.ToJsonString());
-        Assert.Equal(first, await archive.Download(fixture.Tracked(), default));
-        Assert.Equal(1, fixture.Handler.DownloadCalls);
-        metadata["AccountId"] = Guid.NewGuid().ToString();
-        await File.WriteAllTextAsync(path, metadata.ToJsonString());
-        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
-        metadata["AccountId"] = fixture.Account.ToString();
-        metadata["EnvelopeId"] = Guid.NewGuid().ToString();
-        await File.WriteAllTextAsync(path, metadata.ToJsonString());
-        await Assert.ThrowsAsync<IOException>(() => archive.Download(fixture.Tracked(), default));
-        Assert.Equal(1, fixture.Handler.DownloadCalls);
+        fixture.Handler.DownloadFailure = failure;
+        var repository = new FakeDocuSignRepository { Found = fixture.Completed() };
+        Assert.Equal(502, Assert.IsType<ObjectResult>(await DocumentoController(fixture, repository)
+            .Download(123, default)).StatusCode);
+        Assert.Equal(0, repository.ApplyCalls);
+        Assert.Single(Directory.GetFiles(fixture.Directory)); // Solo la clave RSA efimera del fixture.
+    }
+
+    [Fact]
+    public async Task Download_CancellationIsPropagated()
+    {
+        using var fixture = new Fixture(1);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            fixture.Client.DownloadCombinedPdf(fixture.Envelope, cancellation.Token));
+        Assert.Equal(0, fixture.Handler.DownloadCalls);
+    }
+
+    private static PropuestaDocumentoController DocumentoController(Fixture fixture, FakeDocuSignRepository repository,
+        IRepresentanteClientScopeRepository? scope = null)
+    {
+        var service = new DocuSignDocumentoService(new ReadOnlyProposalRepository(),
+            scope ?? new FakeRepresentanteClientScopeRepository(), repository, fixture.Client, fixture.Options);
+        var context = new DefaultHttpContext
+        {
+            User = new(new System.Security.Claims.ClaimsIdentity([new("sub", "7")], "test"))
+        };
+        return new(service, NullLogger<PropuestaDocumentoController>.Instance)
+        { ControllerContext = new ControllerContext { HttpContext = context } };
+    }
+
+    private sealed class ReadOnlyProposalRepository : IPropuestaRepository
+    {
+        public Task<Propuesta?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult<Propuesta?>(id == 123 ? Proposal() : null);
+        public Task<IEnumerable<Propuesta>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task AddAsync(Propuesta p, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task UpdateAsync(Propuesta p, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task DeleteAsync(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private static Propuesta Proposal() => new() { PropuestaId = 123, Cosabcli = "C001", Tipo = "Compra", TipoOrden = "Mercado",
@@ -575,7 +665,7 @@ public sealed class DocuSignTests
                 ["DocuSign:PrivateKeyPath"] = key, ["DocuSign:IndividualTemplateId"] = Guid.NewGuid().ToString(),
                 ["DocuSign:JointTemplateId"] = Guid.NewGuid().ToString(), ["DocuSign:IndividualRole"] = "Cliente",
                 ["DocuSign:JointFirstRole"] = "Titular1", ["DocuSign:JointSecondRole"] = "Titular2",
-                ["DocuSign:SignedDocumentsPath"] = Directory, ["DocuSign:WebhookUrl"] = "https://example.test/api/DocuSign/webhook",
+                ["DocuSign:WebhookUrl"] = "https://example.test/api/DocuSign/webhook",
                 ["DocuSign:WebhookHmacSecret"] = "secret"
             }).Build();
             if (configureThreeTemplate) config["DocuSign:JointThreeTemplateId"] = Guid.NewGuid().ToString();
@@ -587,12 +677,20 @@ public sealed class DocuSignTests
         public DocuSignSobre Tracked() => new(1, 123, Envelope, Account, "completed", _count,
             Enumerable.Range(1, _count).Select(i => new DocuSignFirmante(i.ToString(), _count == 1 ? "Cliente" : $"Titular{i}",
                 "Cuenta", new[] { "+51999999999", "+51988888888", "+51977777777" }[i - 1], "sent")).ToArray());
+        public DocuSignSobre Completed() => Tracked() with
+        { Firmantes = Tracked().Firmantes.Select(s => s with { Estado = "completed" }).ToArray() };
         public void Dispose() { Client.Dispose(); _http.Dispose(); System.IO.Directory.Delete(Directory, true); }
+    }
+
+    private sealed class NonSeekableStream(byte[] bytes) : MemoryStream(bytes)
+    {
+        public override bool CanSeek => false;
     }
 
     private sealed class Handler(int count, Guid account, Guid envelope) : HttpMessageHandler
     {
-        public int CreateCalls, SendCalls, DownloadCalls;
+        public int CreateCalls, SendCalls, DownloadCalls, RequestCalls;
+        public string? DownloadFailure;
         public string? Draft;
         public string? AuthError;
         public Action? BeforeSend;
@@ -605,6 +703,7 @@ public sealed class DocuSignTests
         public string EnvelopeStatus = "completed", FirstStatus = "completed", SecondStatus = "completed", ThirdStatus = "completed", Pdf = "%PDF-1.7\nfake document";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
+            RequestCalls++;
             var path = request.RequestUri!.AbsolutePath;
             if (path.EndsWith("/oauth/token") && AuthError is not null)
                 return new(HttpStatusCode.BadRequest) { Content = new StringContent(AuthError, Encoding.UTF8, "application/json") };
@@ -666,7 +765,19 @@ public sealed class DocuSignTests
                 };
             }
             else if (path.EndsWith("/documents/combined"))
-            { DownloadCalls++; return new(HttpStatusCode.OK) { Content = new ByteArrayContent(Encoding.ASCII.GetBytes(Pdf)) }; }
+            {
+                DownloadCalls++;
+                Assert.Equal("?certificate=true", request.RequestUri.Query);
+                if (DownloadFailure == "timeout") throw new OperationCanceledException("Timeout del proveedor");
+                if (DownloadFailure == "http-error") return new(HttpStatusCode.ServiceUnavailable)
+                { Content = new StringContent("{\"errorCode\":\"DOCUMENT_UNAVAILABLE\"}") };
+                var content = DownloadFailure == "chunked-oversized"
+                    ? (HttpContent)new StreamContent(new NonSeekableStream(new byte[50 * 1024 * 1024 + 1]))
+                    : new ByteArrayContent(Encoding.ASCII.GetBytes(DownloadFailure == "invalid-pdf" ? "<html>error</html>" : Pdf));
+                if (DownloadFailure == "oversized") content.Headers.ContentLength = 50 * 1024 * 1024 + 1;
+                if (DownloadFailure == "chunked-oversized") content.Headers.ContentLength = null;
+                return new(HttpStatusCode.OK) { Content = content };
+            }
             else data = new { status = EnvelopeStatus, statusChangedDateTime = "2026-10-05T18:00:00Z", completedDateTime = "2026-10-05T18:00:00Z" };
             return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json") };
         }

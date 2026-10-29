@@ -12,16 +12,12 @@ if (args.Contains("--help"))
     Console.WriteLine("No guarda credenciales ni muestra tokens. Sin opciones, solo verifica autenticacion.");
     Console.WriteLine("--send-test: completa una plantilla y envia por WhatsApp tras confirmacion.");
     Console.WriteLine("--status ID: consulta el estado de un sobre sin volver a enviarlo.");
-    Console.WriteLine("--download ID PROPUESTA: descarga el PDF si el sobre esta completed.");
-    Console.WriteLine("--watch ID PROPUESTA: espera a completed y descarga automaticamente (cada 15 minutos).");
     return 0;
 }
 if (args.Length != 0 && !args.SequenceEqual(new[] { "--send-test" })
-    && !(args.Length == 2 && args[0] == "--status" && Guid.TryParse(args[1], out _))
-    && !(args.Length == 3 && args[0] is "--download" or "--watch" && Guid.TryParse(args[1], out _)
-        && int.TryParse(args[2], out var proposalNumber) && proposalNumber > 0))
+    && !(args.Length == 2 && args[0] == "--status" && Guid.TryParse(args[1], out _)))
 {
-    Console.WriteLine("Opciones validas: --help, --send-test, --status ID o --download/--watch ID NUMERO_PROPUESTA.");
+    Console.WriteLine("Opciones validas: --help, --send-test, --status ID.");
     return 1;
 }
 
@@ -131,34 +127,6 @@ try
                     return 1;
                 }
                 var apiRoot = $"{apiBase.GetLeftPart(UriPartial.Authority)}/restapi/v2.1/accounts/{accountId}";
-                if (args[0] is "--download" or "--watch")
-                {
-                    stage = "descarga del documento firmado";
-                    async Task<bool> RefreshToken()
-                    {
-                        var issued = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                        var claims = Base64Url(JsonSerializer.SerializeToUtf8Bytes(new
-                        {
-                            iss = clientId, sub = userId, aud = authHost,
-                            iat = issued, exp = issued + 3600, scope = "signature impersonation"
-                        }));
-                        var unsigned = $"{header}.{claims}";
-                        var signed = Base64Url(rsa.SignData(Encoding.UTF8.GetBytes(unsigned), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
-                        using var refreshBody = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            ["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer", ["assertion"] = $"{unsigned}.{signed}"
-                        });
-                        using var renewed = await client.PostAsync($"https://{authHost}/oauth/token", refreshBody);
-                        if (!renewed.IsSuccessStatusCode) return false;
-                        using var renewedJson = JsonDocument.Parse(await renewed.Content.ReadAsStringAsync());
-                        var renewedToken = renewedJson.RootElement.GetProperty("access_token").GetString();
-                        if (string.IsNullOrWhiteSpace(renewedToken)) return false;
-                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", renewedToken);
-                        return true;
-                    }
-                    return await DocusignSignedDocument.Run(client, apiRoot, args[1], int.Parse(args[2]),
-                        args[0] == "--watch", RefreshToken);
-                }
                 return args[0] == "--status" ? await DocusignTemplateTest.ShowStatus(client, apiRoot, args[1])
                     : await DocusignTemplateTest.Send(client, apiRoot);
             }

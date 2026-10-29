@@ -17,7 +17,6 @@ public sealed class DocuSignOptions
     public string JointFirstRole { get; }
     public string JointSecondRole { get; }
     public string JointThirdRole { get; }
-    public string SignedDocumentsPath { get; }
     public string WebhookHmacSecret { get; }
 
     public DocuSignOptions(IConfiguration config)
@@ -50,9 +49,6 @@ public sealed class DocuSignOptions
         if (JointThreeTemplateId is not null
             && new[] { JointFirstRole, JointSecondRole, JointThirdRole }.Distinct(StringComparer.Ordinal).Count() != 3)
             throw new InvalidOperationException("Las tres funciones de la plantilla mancomunada deben ser distintas.");
-        SignedDocumentsPath = Required("SignedDocumentsPath");
-        if (!Path.IsPathFullyQualified(SignedDocumentsPath))
-            throw new InvalidOperationException("DocuSign:SignedDocumentsPath debe ser una ruta absoluta.");
         WebhookHmacSecret = Required("WebhookHmacSecret");
         // Connect a nivel de cuenta publica en esta URL; no se agrega otra notificacion por sobre.
         var webhook = Required("WebhookUrl");

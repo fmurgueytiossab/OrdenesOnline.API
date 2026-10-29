@@ -23,7 +23,7 @@ contrasenas existentes y falla ante conflictos de ID/correo.
 | UserRepresentante | Representantes, login y cambio de contrasena |
 | CodeRepresentante | Codigos de referencia para resolver la cartera en Opersab |
 | Token | Recuperacion de contrasena y revision por token; solo guarda el hash |
-| PropuestaDocuSign | Sobre vigente, firmas requeridas y archivo firmado |
+| PropuestaDocuSign | Sobre vigente, firmas requeridas y estado del proveedor |
 | PropuestaDocuSignFirmante | Destinatarios reales del sobre y estados de firma |
 | usp_EncryptText / usp_DecryptText | Cifrado y descifrado con DATAWEB_KEY y DATAWEB_CERTIFICATE |
 | usp_isValidRepresentantePassword | Validacion de login; devuelve IsValid y RepresentanteId |
@@ -61,7 +61,7 @@ para que la resolucion de gestores/cartera encuentre clientes.
 
 Create OrdenesOnline.Api.sql es la unica fuente del esquema de instalacion:
 incluye las dos tablas de DocuSign y las restricciones para uno, dos o tres firmantes.
-Los scripts SQL por fecha se retiraron porque esa estructura ya esta consolidada.
+Las definiciones de instalacion estan consolidadas en ese archivo.
 Para una base existente, comparar su esquema y aplicar solo los cambios necesarios;
 el Create rechaza objetos existentes y no es un actualizador.
 
@@ -116,7 +116,7 @@ El API no modifica automaticamente el esquema ni recrea tablas al iniciar.
 Con una o dos firmas de tres, la propuesta sigue Enviado y no admite Ingresado.
 Con las tres firmas confirmadas se muestra Firmado y se habilita Marcar ingresado.
 El rechazo de cualquier titular termina en Cancelado; eventos posteriores no reabren
-la propuesta. El documento se archiva solo con el sobre completed y todas las firmas.
+la propuesta. El documento se descarga a pedido solo con el sobre completed y todas las firmas.
 
 ## Verificacion local
 
@@ -125,3 +125,20 @@ Comprueban el Create consolidado, repeticion del seed, IDs/asociaciones, tokens,
 procedimientos con claves efimeras de prueba y el flujo DocuSign de uno/dos/tres.
 No demuestran que los bytes cifrados del dataset sean portables sin las claves
 originales. No se ejecutan estos scripts sobre el servidor de pruebas al compilar.
+
+## DocuSign: descarga directa (2026-10-29)
+
+FechaCambioEstadoUtc reemplaza FechaEstadoUtc y conserva su significado: la
+fecha UTC de statusChangedDateTime informada por DocuSign, no la hora de descarga
+ni la hora local de recepcion del webhook.
+
+PropuestaDocuSign ya no contiene EstadoDescarga, UbicacionArchivo, Sha256Archivo,
+FechaDescargaUtc, IntentosDescarga ni UltimoError. Se retiran tambien sus defaults,
+checks e indice de descargas. Firmantes, firmas, IDs y estados del sobre se conservan.
+No hay worker ni ruta SignedDocumentsPath. Los archivos antiguos no se eliminan.
+
+El esquema final ya esta integrado en Create OrdenesOnline.Api.sql: una instalacion
+nueva crea directamente FechaCambioEstadoUtc y no crea las columnas de archivado.
+Database contiene solo dos scripts SQL: Create y Seed; no hay un Update separado.
+El Create es exclusivamente para una base vacia, no actualiza una base instalada.
+El API tampoco modifica automaticamente el esquema al compilar ni al iniciar.

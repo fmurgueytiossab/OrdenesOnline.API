@@ -47,7 +47,6 @@ public sealed class DocuSignController(DocuSignOptions options, DocuSignClient c
             // Consultar el estado actual evita aceptar mensajes atrasados, duplicados o la firma de solo un titular.
             var state = await client.Status(tracked, ct);
             await repository.ApplyAsync(tracked, state, ct);
-            // El worker descarga desde estados guardados: una interrupcion no pierde el trabajo.
             return Ok();
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)

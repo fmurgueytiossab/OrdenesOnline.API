@@ -274,6 +274,30 @@ public sealed class DocuSignClient(HttpClient http, DocuSignOptions options) : I
             Date(root, "sentDateTime"));
     }
 
+    public async Task<byte[]> DownloadCombinedPdf(Guid envelopeId, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        ct = timeout.Token;
+        const int maximumBytes = 50 * 1024 * 1024;
+        using var response = await Request(HttpMethod.Get,
+            $"/envelopes/{envelopeId}/documents/combined?certificate=true", null, ct, HttpCompletionOption.ResponseHeadersRead);
+        if (response.Content.Headers.ContentLength > maximumBytes)
+            throw new IOException("El documento supera 50 MB.");
+        await using var input = await response.Content.ReadAsStreamAsync(ct);
+        using var output = new MemoryStream();
+        var buffer = new byte[81920];
+        int count;
+        while ((count = await input.ReadAsync(buffer, ct)) > 0)
+        {
+            if (output.Length + count > maximumBytes) throw new IOException("El documento supera 50 MB.");
+            output.Write(buffer, 0, count);
+        }
+        if (output.Length < 5 || !output.GetBuffer().AsSpan(0, 5).SequenceEqual("%PDF-"u8))
+            throw new IOException("DocuSign no devolvió un PDF.");
+        return output.ToArray();
+    }
+
     private static DateTime? Date(JsonElement e, string name) => DateTimeOffset.TryParse(String(e, name),
         CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date) ? date.UtcDateTime : null;
     private static string String(JsonElement e, string name) => e.TryGetProperty(name, out var value) ? value.ToString() : "";

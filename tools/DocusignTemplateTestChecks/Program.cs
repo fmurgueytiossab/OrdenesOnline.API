@@ -30,63 +30,13 @@ foreach (var scenario in new[] { "individual", "mancomunada", "missing-field", "
     Console.WriteLine($"OK: {scenario}");
 }
 
-foreach (var scenario in new[] { "archive-completed", "archive-pending", "archive-declined", "archive-invalid-pdf" })
-{
-    var testDirectory = Path.Combine(Path.GetTempPath(), "DocusignArchiveCheck-" + Guid.NewGuid().ToString("N"));
-    Directory.CreateDirectory(testDirectory);
-    using var handler = new FakeDocusign(scenario);
-    using var client = new HttpClient(handler);
-    using var output = new StringWriter();
-    const string envelopeId = "00000000-0000-0000-0000-000000000001";
-    try
-    {
-        Console.SetOut(output);
-        var result = await DocusignSignedDocument.Run(client, "https://example.invalid", envelopeId, 123,
-            false, () => Task.FromResult(true), testDirectory);
-        var expected = scenario == "archive-completed";
-        if ((result == 0) != expected || File.Exists(Path.Combine(testDirectory, "123.pdf")) != expected)
-            throw new Exception("Archivado inesperado.");
-        if (handler.Downloads != (scenario is "archive-completed" or "archive-invalid-pdf" ? 1 : 0))
-            throw new Exception("Se descargo un sobre pendiente/rechazado.");
-        if (expected)
-        {
-            var repeat = await DocusignSignedDocument.Run(client, "https://example.invalid", envelopeId, 123,
-                false, () => Task.FromResult(true), testDirectory);
-            if (repeat != 0 || handler.Downloads != 1) throw new Exception("La repeticion no fue idempotente.");
-            var conflict = await DocusignSignedDocument.Run(client, "https://example.invalid",
-                "00000000-0000-0000-0000-000000000002", 123, false, () => Task.FromResult(true), testDirectory);
-            if (conflict != 1 || handler.Downloads != 1) throw new Exception("Se permitio cambiar el sobre del PDF.");
-            File.Delete(Path.Combine(testDirectory, "123.pdf"));
-            var recovered = await DocusignSignedDocument.Run(client, "https://example.invalid", envelopeId, 123,
-                false, () => Task.FromResult(true), testDirectory);
-            if (recovered != 0 || handler.Downloads != 2) throw new Exception("No recupero una descarga interrumpida.");
-        }
-    }
-    finally
-    {
-        Console.SetOut(originalOut);
-        Directory.Delete(testDirectory, recursive: true);
-    }
-    Console.WriteLine($"OK: {scenario}");
-}
-
 sealed class FakeDocusign(string scenario) : HttpMessageHandler
 {
     public int Posts { get; private set; }
-    public int Downloads { get; private set; }
     private static readonly string[] Labels = ["Operacion", "Valor", "Cantidad", "TipoOrden", "Precio", "Moneda", "Monto", "Vigencia", "Mercado", "NombreRepresentante", "CodigoCliente"];
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
-        if (path.EndsWith("/documents/combined"))
-        {
-            Downloads++;
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new ByteArrayContent(Encoding.ASCII.GetBytes(scenario == "archive-invalid-pdf"
-                    ? "pagina de error" : "%PDF-1.7\nPDF simulado para comprobar archivado\n%%EOF"))
-            };
-        }
         if (request.Method == HttpMethod.Post)
         {
             Posts++;
@@ -124,8 +74,6 @@ sealed class FakeDocusign(string scenario) : HttpMessageHandler
             });
         return Json(new { status = scenario switch
         {
-            "archive-completed" or "archive-invalid-pdf" => "completed",
-            "archive-declined" => "declined",
             _ => "sent"
         }, completedDateTime = "2026-10-05T12:00:00Z" });
     }

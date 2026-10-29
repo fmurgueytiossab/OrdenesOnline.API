@@ -131,7 +131,6 @@ public sealed class PropuestaIngresadaTests
             Assert.Equal(MarcarPropuestaIngresadaStatus.NotSigned, await tracking.MarkEnteredAsync(7, pending.PropuestaId));
             Assert.Equal("Cancelado", (await context.Propuestas.AsNoTracking()
                 .SingleAsync(p => p.PropuestaId == pending.PropuestaId)).Estado);
-            Assert.DoesNotContain(await signing.PendingDownloadsAsync(account, default), p => p.PropuestaId == pending.PropuestaId);
             foreach (var p in proposals.Skip(1).Take(6))
                 Assert.Equal(MarcarPropuestaIngresadaStatus.NotSigned, await tracking.MarkEnteredAsync(7, p.PropuestaId));
             Assert.Equal(MarcarPropuestaIngresadaStatus.NotFound, await tracking.MarkEnteredAsync(7, proposals[7].PropuestaId));
